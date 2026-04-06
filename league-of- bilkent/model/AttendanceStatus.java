@@ -1,5 +1,6 @@
 package model;
 
+// how a user rsvps to an event
 public enum AttendanceStatus {
     GOING("Going"),
     INTERESTED("Interested"),
@@ -15,6 +16,7 @@ public enum AttendanceStatus {
         return displayName;
     }
 
+    // converts db string back to enum
     public static AttendanceStatus fromString(String s) {
         if (s == null) {
             return null;
