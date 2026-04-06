@@ -9,7 +9,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.time.LocalDateTime;
 
-// form panel where users fill in event details and submit
+// the form where users create a new event
+// has fields for title, description, location, dates, capacity, xp, tier, tags
+// on submit it saves to db, generates a poster if none picked, and notifies followers
 public class CreateEventPanel extends JPanel {
 
     private HomeScreen home;
@@ -30,7 +32,6 @@ public class CreateEventPanel extends JPanel {
         buildUI();
     }
 
-    // puts together the whole form top to bottom
     private void buildUI() {
         JPanel form = UIHelper.createPagePanel();
 
@@ -191,7 +192,7 @@ public class CreateEventPanel extends JPanel {
         add(UIHelper.wrapInScroll(form), BorderLayout.CENTER);
     }
 
-    // builds a row of day/month/year spinners, optionally with hour and minute
+    // now = default date to show, withTime = whether to add hour:min spinners
     private JPanel createDateRow(LocalDateTime now, boolean withTime) {
         JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
         row.setBackground(Color.WHITE);
@@ -226,7 +227,7 @@ public class CreateEventPanel extends JPanel {
         return row;
     }
 
-    // opens a file picker so user can select a poster image
+    // file picker for jpg/png/gif poster images
     private void chooseImage() {
         JFileChooser fc = new JFileChooser();
         fc.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Images", "jpg", "jpeg", "png", "gif"));
@@ -237,7 +238,7 @@ public class CreateEventPanel extends JPanel {
         }
     }
 
-    // validates form fields, creates the event, notifies followers, and goes back to feed
+    // validates, saves to db, sends notifs to followers, then goes back to feed
     private void handleCreate() {
         String t = UIHelper.getFieldText(titleField, AppConstants.PH_EVENT_TITLE);
         if (t.isEmpty()) {
@@ -307,7 +308,7 @@ public class CreateEventPanel extends JPanel {
         }
     }
 
-    // small helper to make consistent form labels
+    // creates a styled label, text = the label text
     private JLabel createFieldLabel(String text) {
         JLabel l = new JLabel(text);
         l.setFont(AppConstants.F_SMALL);
