@@ -314,5 +314,97 @@ public class FeedPanel extends JPanel {
             });
             return card;
         }
-    
+    private JPanel createRecRow(Event ev, ArrayList<String> interests) {
+        String reason = "";
+        for (String tag : ev.getTags())
+            for (String i : interests)
+                if (tag.equalsIgnoreCase(i)) { reason = i; break; }
+
+        JPanel row = new JPanel(new BorderLayout(12, 0));
+        row.setBackground(Color.WHITE);
+        row.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(AppConstants.BORDER, 1, true),
+            BorderFactory.createEmptyBorder(14, 18, 14, 18)));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 64));
+        row.setAlignmentX(LEFT_ALIGNMENT);
+
+        JPanel info = new JPanel();
+        info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
+        info.setOpaque(false);
+        JLabel name = new JLabel(ev.getTitle());
+        name.setFont(AppConstants.F_SECTION);
+        info.add(name);
+        String whyText = reason.isEmpty() ? "Recommended for you" : "Because you like " + reason;
+        JLabel why = new JLabel(whyText);
+        why.setFont(AppConstants.F_TINY);
+        why.setForeground(AppConstants.TEAL);
+        info.add(why);
+        row.add(info, BorderLayout.CENTER);
+
+        JButton vb = UIHelper.createOutlineButton("Details \u2192", AppConstants.TEAL);
+        vb.addActionListener(e -> home.showEventDetail(ev));
+        row.add(vb, BorderLayout.EAST);
+        return row;
+    }
+
+    private JPanel createSectionHeader(String num, String title, String sub) {
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
+        header.setAlignmentX(LEFT_ALIGNMENT);
+        header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
+
+        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        left.setOpaque(false);
+        JLabel numLbl = new JLabel(num);
+        numLbl.setFont(new Font("SansSerif", Font.BOLD, 12));
+        numLbl.setForeground(AppConstants.TEAL);
+        left.add(numLbl);
+        JLabel titleLbl = new JLabel(title);
+        titleLbl.setFont(AppConstants.F_TITLE);
+        titleLbl.setForeground(AppConstants.TEXT_PRI);
+        left.add(titleLbl);
+        header.add(left, BorderLayout.WEST);
+
+        return header;
+    }
+
+    private JButton createPill(String text, boolean active) {
+        JButton b = new JButton(text);
+        b.setFont(new Font("SansSerif", active ? Font.BOLD : Font.PLAIN, 12));
+        b.setForeground(active ? Color.WHITE : AppConstants.TEXT_SEC);
+        b.setBackground(active ? AppConstants.TEAL : Color.WHITE);
+        b.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(active ? AppConstants.TEAL : AppConstants.BORDER, 1, true),
+            BorderFactory.createEmptyBorder(6, 14, 6, 14)));
+        b.setFocusPainted(false);
+        b.setOpaque(true);
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return b;
+    }
+
+    private void sortEvents(ArrayList<Event> events) {
+        switch (currentSort) {
+            case "Location": events.sort(Comparator.comparing(Event::getLocation, String.CASE_INSENSITIVE_ORDER)); break;
+            case "XP Reward": events.sort((a, b) -> b.getXpReward() - a.getXpReward()); break;
+            case "Popularity": events.sort((a, b) -> b.getGoingCount() - a.getGoingCount()); break;
+            default: events.sort(Comparator.comparing(Event::getDateTime)); break;
+        }
+    }
+
+    private ArrayList<Event> getFilteredEvents() {
+        ArrayList<Event> all = Database.getAllEvents();
+        return all.stream().filter(ev -> {
+            if (currentFilter.equals("All")) return true;
+            if (currentFilter.startsWith("TAG:")) {
+                String tag = currentFilter.substring(4);
+                return ev.getTags().stream().anyMatch(t -> t.equalsIgnoreCase(tag));
+            }
+            return true;
+        }).collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    private BufferedImage loadImage(String path) {
+        if (path == null || path.isEmpty()) return null;
+        try { return javax.imageio.ImageIO.read(new File(path)); } catch (Exception e) { return null; }
+    }
 }
