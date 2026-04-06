@@ -9,6 +9,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 
+// full event detail page with rsvp, attendees and comments
 public class EventDetailPanel extends JPanel {
 
     private Event event;
@@ -129,6 +130,7 @@ public class EventDetailPanel extends JPanel {
         return row;
     }
 
+    // toggle buttons for going/interested/maybe, going checks deadline + tier
     private JPanel buildAttendanceSection() {
         JPanel section = new JPanel();
         section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
@@ -234,6 +236,7 @@ public class EventDetailPanel extends JPanel {
         return section;
     }
 
+    // threaded comments, replies show indented under their parent
     private JPanel buildCommentsSection() {
         JPanel section = new JPanel();
         section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
