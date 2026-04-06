@@ -162,6 +162,157 @@ public class FeedPanel extends JPanel {
         add(UIHelper.wrapInScroll(body), BorderLayout.CENTER);
         refreshGrid();
     }
+    public void refreshGrid() {
+            gridPanel.removeAll();
+            ArrayList<Event> events = getFilteredEvents();
+            sortEvents(events);
+            if (events.isEmpty()) {
+                gridPanel.setLayout(new BorderLayout());
+                JLabel empty = new JLabel("No events yet. Create one!", JLabel.CENTER);
+                empty.setFont(AppConstants.F_NORMAL);
+                empty.setForeground(AppConstants.TEXT_MUTED);
+                gridPanel.add(empty, BorderLayout.CENTER);
+            } else {
+                gridPanel.setLayout(new GridLayout(0, AppConstants.FEED_COLUMNS, 16, 16));
+                for (Event ev : events) gridPanel.add(createCard(ev));
+            }
+            gridPanel.revalidate();
+            gridPanel.repaint();
+        }
 
+        private JPanel createCard(Event ev) {
+            int R = AppConstants.CARD_RADIUS;
+            Color posterBg = PosterGenerator.getColorForEvent(ev.getId());
+            String catEmoji = PosterGenerator.getCategoryEmoji(ev.getTags());
+
+            final String emoji = catEmoji;
+            final Color bgColor = posterBg;
+            String firstTag = ev.getTags().isEmpty() ? "" : ev.getTags().get(0).toLowerCase();
+
+            JPanel card = new JPanel() {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    int w = getWidth(), h = getHeight();
+
+                    // Shadow
+                    g2.setColor(new Color(0, 100, 120, 14));
+                    g2.fillRoundRect(2, 4, w - 2, h - 2, R, R);
+
+                    g2.setClip(new RoundRectangle2D.Float(0, 0, w, h - 2, R, R));
+
+                    // Poster area - top 45%
+                    int posterH = (int)(h * 0.42);
+                    BufferedImage img = loadImage(ev.getImagePath());
+                    if (img != null) {
+                        double scale = Math.max((double)w/img.getWidth(), (double)posterH/img.getHeight());
+                        int iw=(int)(img.getWidth()*scale), ih=(int)(img.getHeight()*scale);
+                        g2.drawImage(img, (w-iw)/2, (posterH-ih)/2, iw, ih, null);
+                    } else {
+                        g2.setColor(bgColor);
+                        g2.fillRect(0, 0, w, posterH);
+                        // Big emoji
+                        g2.setFont(new Font("SansSerif", Font.PLAIN, 48));
+                        FontMetrics fm = g2.getFontMetrics();
+                        g2.drawString(emoji, w/2 - fm.stringWidth(emoji)/2, posterH/2 + 16);
+                    }
+
+                    // White body
+                    g2.setColor(Color.WHITE);
+                    g2.fillRect(0, posterH, w, h - posterH);
+
+                    g2.setClip(null);
+                    g2.setColor(AppConstants.BORDER);
+                    g2.drawRoundRect(0, 0, w - 1, h - 3, R, R);
+                    g2.dispose();
+                }
+            };
+            card.setLayout(new BorderLayout());
+            card.setOpaque(false);
+            card.setPreferredSize(new Dimension(0, 310));
+
+            // Badge
+            JPanel badgeRow = new JPanel(new BorderLayout());
+            badgeRow.setOpaque(false);
+            badgeRow.setBorder(BorderFactory.createEmptyBorder(10, 12, 0, 12));
+            if (!firstTag.isEmpty()) {
+                JLabel badge = new JLabel(firstTag.substring(0,1).toUpperCase() + firstTag.substring(1));
+                badge.setFont(new Font("SansSerif", Font.BOLD, 10));
+                badge.setForeground(AppConstants.TEAL_DARK);
+                badge.setOpaque(true);
+                badge.setBackground(new Color(255,255,255,200));
+                badge.setBorder(BorderFactory.createEmptyBorder(3, 8, 3, 8));
+                badgeRow.add(badge, BorderLayout.WEST);
+            }
+            card.add(badgeRow, BorderLayout.NORTH);
+
+            // Body
+            JPanel bottom = new JPanel();
+            bottom.setLayout(new BoxLayout(bottom, BoxLayout.Y_AXIS));
+            bottom.setOpaque(false);
+            bottom.setBorder(BorderFactory.createEmptyBorder(8, 16, 12, 16));
+
+            JLabel dateLbl = new JLabel(ev.getDateStr());
+            dateLbl.setFont(AppConstants.F_TINY);
+            dateLbl.setForeground(AppConstants.TEXT_LIGHT);
+            dateLbl.setAlignmentX(LEFT_ALIGNMENT);
+            bottom.add(dateLbl);
+            bottom.add(Box.createVerticalStrut(3));
+
+            JLabel titleLbl = new JLabel(ev.getTitle());
+            titleLbl.setFont(AppConstants.F_SECTION);
+            titleLbl.setForeground(AppConstants.TEXT_PRI);
+            titleLbl.setAlignmentX(LEFT_ALIGNMENT);
+            bottom.add(titleLbl);
+            bottom.add(Box.createVerticalStrut(3));
+
+            JLabel locLbl = new JLabel("\uD83D\uDCCD " + ev.getLocation());
+            locLbl.setFont(AppConstants.F_TINY);
+            locLbl.setForeground(AppConstants.TEXT_SEC);
+            locLbl.setAlignmentX(LEFT_ALIGNMENT);
+            bottom.add(locLbl);
+            bottom.add(Box.createVerticalStrut(8));
+
+            // Footer: going count + RSVP
+            JPanel footer = new JPanel(new BorderLayout());
+            footer.setOpaque(false);
+            footer.setAlignmentX(LEFT_ALIGNMENT);
+
+            JLabel goingLbl = new JLabel(ev.getGoingCount() + " going");
+            goingLbl.setFont(AppConstants.F_TINY);
+            goingLbl.setForeground(AppConstants.TEXT_LIGHT);
+            footer.add(goingLbl, BorderLayout.WEST);
+
+            String me = MainFile.currentUser.getUsername();
+            AttendanceStatus myStatus = ev.getAttendanceStatus(me);
+            JButton rsvp;
+            if (myStatus == AttendanceStatus.GOING) {
+                rsvp = new JButton("Going \u2713");
+                rsvp.setForeground(Color.WHITE);
+                rsvp.setBackground(AppConstants.TEAL);
+                rsvp.setOpaque(true);
+            } else {
+                rsvp = new JButton("RSVP");
+                rsvp.setForeground(AppConstants.TEAL);
+                rsvp.setBackground(Color.WHITE);
+            }
+            rsvp.setFont(new Font("SansSerif", Font.BOLD, 11));
+            rsvp.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(AppConstants.TEAL, 1, true),
+                BorderFactory.createEmptyBorder(4, 12, 4, 12)));
+            rsvp.setFocusPainted(false);
+            rsvp.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            footer.add(rsvp, BorderLayout.EAST);
+
+            bottom.add(footer);
+            card.add(bottom, BorderLayout.SOUTH);
+
+            card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            card.addMouseListener(new MouseAdapter() {
+                public void mouseClicked(MouseEvent e) { home.showEventDetail(ev); }
+            });
+            return card;
+        }
     
 }
