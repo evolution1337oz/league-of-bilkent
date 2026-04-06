@@ -9,7 +9,19 @@ import java.util.HashMap;
  * 
  *   mysql database
  *   createConnection  createTables
- *   raw insert and query methods for testing
+ * 
+ *   test:       testInsertUser testInsertEvent printAllUsers printAllEvents
+ *   interests:  addUserInterest getUserInterests addEventTag getEventTags
+ *   attendance: insertAttendance removeAttendance getAttendance
+ *   comments:   insertComment printComments
+ *   follows:    insertFollow deleteFollow getFollowers getFollowing
+ *   notif:      insertNotification getNotifications
+ *   messages:   sendMessage getMessages getConversationPartners
+ *   xp:         getUserXP addXP
+ *   queries:    isDatabaseEmpty isEmailTaken getLeaderboard
+ *               getPopularEventIds getRecommendedEventIds getDbStateHash
+ *   updates:    updateUserBio updateUserVerified updateUserPassword
+ *               updateEventImage
  * 
  *   TODO refactor with model classes when ready
  */
@@ -127,8 +139,46 @@ public class Database {
                     "message TEXT, " +
                     "timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
 
+            // messages (id, sender, receiver, text, timestamp, read_at)
+            dbST.executeUpdate("CREATE TABLE IF NOT EXISTS messages " +
+                    "(id INT AUTO_INCREMENT PRIMARY KEY, " +
+                    "sender_username VARCHAR(50), " +
+                    "receiver_username VARCHAR(50), " +
+                    "text TEXT, " +
+                    "timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                    "read_at TIMESTAMP NULL)");
+
         } catch (Exception e) {
             System.out.println("table creation error: " + e.getMessage());
+        }
+    }
+
+    // helper for running a single column query and returning list
+    private static ArrayList<String> qList(String sql, String column, String... params) {
+        ArrayList<String> list = new ArrayList<>();
+        try {
+            PreparedStatement ps = databaseConnection.prepareStatement(sql);
+            for (int i = 0; i < params.length; i++) {
+                ps.setString(i + 1, params[i]);
+            }
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                list.add(rs.getString(column));
+            }
+        } catch (Exception e) {
+        }
+        return list;
+    }
+
+    // helper for running delete with prepared statement
+    private static void executeDelete(String sql, String... params) {
+        try {
+            PreparedStatement ps = databaseConnection.prepareStatement(sql);
+            for (int i = 0; i < params.length; i++) {
+                ps.setString(i + 1, params[i]);
+            }
+            ps.executeUpdate();
+        } catch (Exception e) {
         }
     }
 
@@ -154,7 +204,9 @@ public class Database {
             String dateTime, int capacity, String creator) {
         int generatedID = -1;
         try {
-            PreparedStatement ps = databaseConnection.prepareStatement("INSERT INTO events (title,description,location,date_time,capacity,creator_username) VALUES(?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS);
+            PreparedStatement ps = databaseConnection.prepareStatement(
+                    "INSERT INTO events (title,description,location,date_time,capacity,creator_username) VALUES(?,?,?,?,?,?)",
+                    Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, title);
             ps.setString(2, desc);
             ps.setString(3, location);
@@ -176,36 +228,29 @@ public class Database {
 
     public static void addUserInterest(String username, String interest) {
         try {
-            databaseConnection.createStatement().executeUpdate("INSERT IGNORE INTO user_interests VALUES('" + username + "','" + interest + "')");
+            databaseConnection.createStatement()
+                    .executeUpdate("INSERT IGNORE INTO user_interests VALUES('" + username + "','" + interest + "')");
         } catch (Exception e) {
         }
     }
 
     public static void addEventTag(int eventId, String tag) {
         try {
-            databaseConnection.createStatement().executeUpdate("INSERT IGNORE INTO event_tags VALUES(" + eventId + ",'" + tag + "')");
+            databaseConnection.createStatement()
+                    .executeUpdate("INSERT IGNORE INTO event_tags VALUES(" + eventId + ",'" + tag + "')");
         } catch (Exception e) {
         }
     }
 
     public static ArrayList<String> getUserInterests(String username) {
-        ArrayList<String> list = new ArrayList<>();
-        try {
-            PreparedStatement ps = databaseConnection.prepareStatement("SELECT interest FROM user_interests WHERE username=?");
-            ps.setString(1, username);
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                list.add(rs.getString("interest"));
-            }
-        } catch (Exception e) {
-        }
-        return list;
+        return qList("SELECT interest FROM user_interests WHERE username=?", "interest", username);
     }
 
     public static ArrayList<String> getEventTags(int eventId) {
         ArrayList<String> list = new ArrayList<>();
         try {
-            PreparedStatement ps = databaseConnection.prepareStatement("SELECT tag FROM event_tags WHERE event_id=?");
+            PreparedStatement ps = databaseConnection.prepareStatement(
+                    "SELECT tag FROM event_tags WHERE event_id=?");
             ps.setInt(1, eventId);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
@@ -216,12 +261,24 @@ public class Database {
         return list;
     }
 
+    // clears and re-inserts interests for a user
+    public static void setInterests(String username, ArrayList<String> interests) {
+        try {
+            executeDelete("DELETE FROM user_interests WHERE username=?", username);
+            for (String interest : interests) {
+                addUserInterest(username, interest);
+            }
+        } catch (Exception e) {
+        }
+    }
+
     // ----------------------------attendance----------------------------
 
     public static void insertAttendance(int eventId, String username, String status) {
         try {
             PreparedStatement ps = databaseConnection.prepareStatement(
-                    "INSERT INTO attendance (event_id,username,status) VALUES(?,?,?) " +"ON DUPLICATE KEY UPDATE status=?");
+                    "INSERT INTO attendance (event_id,username,status) VALUES(?,?,?) " +
+                            "ON DUPLICATE KEY UPDATE status=?");
             ps.setInt(1, eventId);
             ps.setString(2, username);
             ps.setString(3, status);
@@ -233,7 +290,8 @@ public class Database {
 
     public static void removeAttendance(int eventId, String username) {
         try {
-            PreparedStatement ps = databaseConnection.prepareStatement("DELETE FROM attendance WHERE event_id=? AND username=?");
+            PreparedStatement ps = databaseConnection.prepareStatement(
+                    "DELETE FROM attendance WHERE event_id=? AND username=?");
             ps.setInt(1, eventId);
             ps.setString(2, username);
             ps.executeUpdate();
@@ -245,7 +303,8 @@ public class Database {
     public static HashMap<String, String> getAttendance(int eventId) {
         HashMap<String, String> map = new HashMap<>();
         try {
-            ResultSet rs = databaseConnection.createStatement().executeQuery("SELECT username,status FROM attendance WHERE event_id=" + eventId);
+            ResultSet rs = databaseConnection.createStatement()
+                    .executeQuery("SELECT username,status FROM attendance WHERE event_id=" + eventId);
             while (rs.next()) {
                 map.put(rs.getString("username"), rs.getString("status"));
             }
@@ -260,7 +319,8 @@ public class Database {
     public static int insertComment(int eventId, String username, String text, String time) {
         int generatedID = -1;
         try {
-            PreparedStatement ps = databaseConnection.prepareStatement("INSERT INTO comments (event_id,username,text,timestamp) VALUES(?,?,?,?)",
+            PreparedStatement ps = databaseConnection.prepareStatement(
+                    "INSERT INTO comments (event_id,username,text,timestamp) VALUES(?,?,?,?)",
                     Statement.RETURN_GENERATED_KEYS);
             ps.setInt(1, eventId);
             ps.setString(2, username);
@@ -279,7 +339,8 @@ public class Database {
     // prints comments for an event
     public static void printComments(int eventId) {
         try {
-            ResultSet rs = databaseConnection.createStatement().executeQuery("SELECT * FROM comments WHERE event_id=" + eventId + " ORDER BY comment_id");
+            ResultSet rs = databaseConnection.createStatement()
+                    .executeQuery("SELECT * FROM comments WHERE event_id=" + eventId + " ORDER BY comment_id");
             while (rs.next()) {
                 System.out.println("  " + rs.getString("username") + ": " + rs.getString("text"));
             }
@@ -289,58 +350,37 @@ public class Database {
 
     // ----------------------------follows----------------------------
 
-    
-    public static void insertFollow(String follower, String following) {
+    public static void deleteFollow(String follower, String following) {
         try {
-            databaseConnection.createStatement().executeUpdate("INSERT IGNORE INTO follows VALUES('" + follower + "','" + following + "')");
+            executeDelete("DELETE FROM follows WHERE follower_username=? AND following_username=?", follower,
+                    following);
         } catch (Exception e) {
         }
     }
 
-
-    public static void deleteFollow(String follower, String following) {
+    public static void insertFollow(String follower, String following) {
         try {
-            PreparedStatement ps = databaseConnection.prepareStatement("DELETE FROM follows WHERE follower_username=? AND following_username=?");
-            ps.setString(1, follower);
-            ps.setString(2, following);
-            ps.executeUpdate();
+            databaseConnection.createStatement()
+                    .executeUpdate(
+                            "INSERT IGNORE INTO follows VALUES('" + follower + "','" + following + "')");
         } catch (Exception e) {
         }
     }
 
     public static ArrayList<String> getFollowers(String username) {
-        ArrayList<String> list = new ArrayList<>();
-        try {
-            PreparedStatement ps = databaseConnection.prepareStatement("SELECT follower_username FROM follows WHERE following_username=?");
-            ps.setString(1, username);
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                list.add(rs.getString("follower_username"));
-            }
-        } catch (Exception e) {
-        }
-        return list;
+        return qList("SELECT follower_username FROM follows WHERE following_username=?", "follower_username", username);
     }
 
     public static ArrayList<String> getFollowing(String username) {
-        ArrayList<String> list = new ArrayList<>();
-        try {
-            PreparedStatement ps = databaseConnection.prepareStatement("SELECT following_username FROM follows WHERE follower_username=?");
-            ps.setString(1, username);
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                list.add(rs.getString("following_username"));
-            }
-        } catch (Exception e) {
-        }
-        return list;
+        return qList("SELECT following_username FROM follows WHERE follower_username=?", "following_username", username);
     }
 
     // ----------------------------notifications----------------------------
 
     public static void insertNotification(String username, String message) {
         try {
-            PreparedStatement ps = databaseConnection.prepareStatement("INSERT INTO notifications (username,message) VALUES(?,?)");
+            PreparedStatement ps = databaseConnection.prepareStatement(
+                    "INSERT INTO notifications (username,message) VALUES(?,?)");
             ps.setString(1, username);
             ps.setString(2, message);
             ps.executeUpdate();
@@ -349,24 +389,99 @@ public class Database {
     }
 
     public static ArrayList<String> getNotifications(String username) {
+        return qList("SELECT message FROM notifications WHERE username=? ORDER BY timestamp DESC", "message", username);
+    }
+
+    // ----------------------------messages----------------------------
+
+    // sends a message from sender to receiver
+    public static void sendMessage(String sender, String receiver, String text) {
+        try {
+            PreparedStatement ps = databaseConnection.prepareStatement(
+                    "INSERT INTO messages (sender_username,receiver_username,text) VALUES(?,?,?)");
+            ps.setString(1, sender);
+            ps.setString(2, receiver);
+            ps.setString(3, text);
+            ps.executeUpdate();
+        } catch (Exception e) {
+        }
+    }
+
+    // gets messages between two users
+    public static ArrayList<String> getMessages(String user1, String user2) {
         ArrayList<String> list = new ArrayList<>();
         try {
-            PreparedStatement ps = databaseConnection.prepareStatement("SELECT message FROM notifications WHERE username=? ORDER BY timestamp DESC");
-            ps.setString(1, username);
+            PreparedStatement ps = databaseConnection.prepareStatement(
+                    "SELECT sender_username,text,timestamp FROM messages " +
+                            "WHERE (sender_username=? AND receiver_username=?) " +
+                            "OR (sender_username=? AND receiver_username=?) " +
+                            "ORDER BY timestamp ASC");
+            ps.setString(1, user1);
+            ps.setString(2, user2);
+            ps.setString(3, user2);
+            ps.setString(4, user1);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
-                list.add(rs.getString("message"));
+                list.add(rs.getString("sender_username") + ": " + rs.getString("text"));
             }
         } catch (Exception e) {
         }
         return list;
     }
 
+    // gets list of users this user has messaged with
+    public static ArrayList<String> getConversationPartners(String username) {
+        ArrayList<String> partners = new ArrayList<>();
+        try {
+            PreparedStatement ps = databaseConnection.prepareStatement(
+                    "SELECT DISTINCT CASE WHEN sender_username=? THEN receiver_username ELSE sender_username END AS partner " +
+                            "FROM messages WHERE sender_username=? OR receiver_username=? ORDER BY partner");
+            ps.setString(1, username);
+            ps.setString(2, username);
+            ps.setString(3, username);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                partners.add(rs.getString("partner"));
+            }
+        } catch (Exception e) {
+        }
+        return partners;
+    }
+
+    // counts unread messages for a user
+    public static int getUnreadMessageCount(String username) {
+        try {
+            PreparedStatement ps = databaseConnection.prepareStatement(
+                    "SELECT COUNT(*) FROM messages WHERE receiver_username=? AND read_at IS NULL");
+            ps.setString(1, username);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (Exception e) {
+        }
+        return 0;
+    }
+
+    // marks messages from a specific sender as read
+    public static void markMessagesAsRead(String receiver, String sender) {
+        try {
+            PreparedStatement ps = databaseConnection.prepareStatement(
+                    "UPDATE messages SET read_at=CURRENT_TIMESTAMP " +
+                            "WHERE receiver_username=? AND sender_username=? AND read_at IS NULL");
+            ps.setString(1, receiver);
+            ps.setString(2, sender);
+            ps.executeUpdate();
+        } catch (Exception e) {
+        }
+    }
+
     // ----------------------------xp----------------------------
 
     public static int getUserXP(String username) {
         try {
-            PreparedStatement ps = databaseConnection.prepareStatement("SELECT xp FROM users WHERE username=?");
+            PreparedStatement ps = databaseConnection.prepareStatement(
+                    "SELECT xp FROM users WHERE username=?");
             ps.setString(1, username);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
@@ -393,7 +508,8 @@ public class Database {
             ResultSet rs = databaseConnection.createStatement()
                     .executeQuery("SELECT * FROM users");
             while (rs.next()) {
-                System.out.println("  " + rs.getString("username") + " - " +rs.getString("display_name") + " xp=" + rs.getInt("xp"));
+                System.out.println("  " + rs.getString("username") + " - " +
+                        rs.getString("display_name") + " xp=" + rs.getInt("xp"));
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -406,7 +522,8 @@ public class Database {
             ResultSet rs = databaseConnection.createStatement()
                     .executeQuery("SELECT * FROM events");
             while (rs.next()) {
-                System.out.println("  [" + rs.getInt("event_id") + "] " +rs.getString("title") + " at " + rs.getString("location") +
+                System.out.println("  [" + rs.getInt("event_id") + "] " +
+                        rs.getString("title") + " at " + rs.getString("location") +
                         " by " + rs.getString("creator_username"));
             }
         } catch (Exception e) {
@@ -434,7 +551,8 @@ public class Database {
     // checks if email is already taken
     public static boolean isEmailTaken(String email) {
         try {
-            PreparedStatement ps = databaseConnection.prepareStatement("SELECT COUNT(*) FROM users WHERE email=?");
+            PreparedStatement ps = databaseConnection.prepareStatement(
+                    "SELECT COUNT(*) FROM users WHERE email=?");
             ps.setString(1, email);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
@@ -445,16 +563,89 @@ public class Database {
         return false;
     }
 
+    // gets top users by xp for leaderboard
+    public static ArrayList<String> getLeaderboard(int limit) {
+        ArrayList<String> list = new ArrayList<>();
+        try {
+            ResultSet rs = databaseConnection.createStatement()
+                    .executeQuery("SELECT username,display_name,xp FROM users ORDER BY xp DESC LIMIT " + limit);
+            while (rs.next()) {
+                list.add(rs.getString("username") + " - " + rs.getString("display_name") + " (" + rs.getInt("xp") + " xp)");
+            }
+        } catch (Exception e) {
+        }
+        return list;
+    }
+
+    // gets most attended event ids
+    public static ArrayList<Integer> getPopularEventIds(int limit) {
+        ArrayList<Integer> eventIDs = new ArrayList<>();
+        try {
+            ResultSet rs = databaseConnection.createStatement()
+                    .executeQuery("SELECT event_id, COUNT(*) as cnt FROM attendance GROUP BY event_id ORDER BY cnt DESC LIMIT " + limit);
+            while (rs.next()) {
+                eventIDs.add(rs.getInt("event_id"));
+            }
+        } catch (Exception e) {
+        }
+        return eventIDs;
+    }
+
+    // Matches user interests with event tags to find matching events
+    public static ArrayList<Integer> getRecommendedEventIds(String username, int limit) {
+        ArrayList<Integer> eventIDs = new ArrayList<>();
+        try {
+            PreparedStatement ps = databaseConnection.prepareStatement(
+                    "SELECT DISTINCT et.event_id FROM event_tags et " +
+                            "INNER JOIN user_interests ui ON et.tag = ui.interest " +
+                            "WHERE ui.username=? " +
+                            "AND et.event_id NOT IN (SELECT event_id FROM attendance WHERE username=?) " +
+                            "LIMIT ?");
+            ps.setString(1, username);
+            ps.setString(2, username);
+            ps.setInt(3, limit);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                eventIDs.add(rs.getInt("event_id"));
+            }
+        } catch (Exception e) {
+        }
+        return eventIDs;
+    }
+
+    // computes a hash of database state for polling
+    public static int getDbStateHash() {
+        try {
+            int hash = 0;
+            ResultSet rs = databaseConnection.createStatement().executeQuery("SELECT COUNT(*) FROM users");
+            if (rs.next()) hash += rs.getInt(1) * 31;
+            rs = databaseConnection.createStatement().executeQuery("SELECT COUNT(*) FROM events");
+            if (rs.next()) hash += rs.getInt(1) * 37;
+            rs = databaseConnection.createStatement().executeQuery("SELECT COUNT(*) FROM follows");
+            if (rs.next()) hash += rs.getInt(1) * 41;
+            rs = databaseConnection.createStatement().executeQuery("SELECT COUNT(*) FROM attendance");
+            if (rs.next()) hash += rs.getInt(1) * 43;
+            rs = databaseConnection.createStatement().executeQuery("SELECT COUNT(*) FROM comments");
+            if (rs.next()) hash += rs.getInt(1) * 47;
+            rs = databaseConnection.createStatement().executeQuery("SELECT COUNT(*) FROM messages");
+            if (rs.next()) hash += rs.getInt(1) * 53;
+            return hash;
+        } catch (Exception e) {
+        }
+        return -1;
+    }
+
     // ----------------------------delete----------------------------
 
     // deletes a user and their related data
     public static void deleteUser(String username) {
         try {
-            databaseConnection.createStatement().executeUpdate("DELETE FROM user_interests WHERE username='" + username + "'");
-            databaseConnection.createStatement().executeUpdate("DELETE FROM follows WHERE follower_username='" + username + "' OR following_username='"+ username + "'");
-            databaseConnection.createStatement().executeUpdate("DELETE FROM notifications WHERE username='" + username + "'");
-            databaseConnection.createStatement().executeUpdate("DELETE FROM attendance WHERE username='" + username + "'");
-            databaseConnection.createStatement().executeUpdate("DELETE FROM users WHERE username='" + username + "'");
+            String uname = username;
+            executeDelete("DELETE FROM user_interests WHERE username=?", uname);
+            executeDelete("DELETE FROM follows WHERE follower_username=? OR following_username=?", uname, uname);
+            executeDelete("DELETE FROM notifications WHERE username=?", username);
+            executeDelete("DELETE FROM attendance WHERE username=?", uname);
+            executeDelete("DELETE FROM users WHERE username=?", username);
         } catch (Exception e) {
         }
     }
@@ -462,10 +653,14 @@ public class Database {
     // deletes an event and its related data
     public static void deleteEvent(int eventId) {
         try {
-            databaseConnection.createStatement().executeUpdate("DELETE FROM event_tags WHERE event_id=" + eventId);
-            databaseConnection.createStatement().executeUpdate("DELETE FROM attendance WHERE event_id=" + eventId);
-            databaseConnection.createStatement().executeUpdate("DELETE FROM comments WHERE event_id=" + eventId);
-            databaseConnection.createStatement().executeUpdate("DELETE FROM events WHERE event_id=" + eventId);
+            databaseConnection.createStatement()
+                    .executeUpdate("DELETE FROM event_tags WHERE event_id=" + eventId);
+            databaseConnection.createStatement()
+                    .executeUpdate("DELETE FROM attendance WHERE event_id=" + eventId);
+            databaseConnection.createStatement()
+                    .executeUpdate("DELETE FROM comments WHERE event_id=" + eventId);
+            databaseConnection.createStatement()
+                    .executeUpdate("DELETE FROM events WHERE event_id=" + eventId);
         } catch (Exception e) {
         }
     }
@@ -474,7 +669,8 @@ public class Database {
 
     public static void updateUserBio(String username, String bio) {
         try {
-            PreparedStatement ps = databaseConnection.prepareStatement("UPDATE users SET bio=? WHERE username=?");
+            PreparedStatement ps = databaseConnection.prepareStatement(
+                    "UPDATE users SET bio=? WHERE username=?");
             ps.setString(1, bio);
             ps.setString(2, username);
             ps.executeUpdate();
@@ -484,7 +680,32 @@ public class Database {
 
     public static void updateUserVerified(String username, boolean verified) {
         try {
-            databaseConnection.createStatement().executeUpdate("UPDATE users SET verified=" + (verified ? 1 : 0) + " WHERE username='" + username + "'");
+            databaseConnection.createStatement()
+                    .executeUpdate("UPDATE users SET verified=" + (verified ? 1 : 0) +
+                            " WHERE username='" + username + "'");
+        } catch (Exception e) {
+        }
+    }
+
+    public static void updateUserPassword(String username, String hashedPassword, String salt) {
+        try {
+            PreparedStatement ps = databaseConnection.prepareStatement(
+                    "UPDATE users SET password=?, salt=? WHERE username=?");
+            ps.setString(1, hashedPassword);
+            ps.setString(2, salt);
+            ps.setString(3, username);
+            ps.executeUpdate();
+        } catch (Exception e) {
+        }
+    }
+
+    public static void updateEventImage(int eventId, String imagePath) {
+        try {
+            PreparedStatement ps = databaseConnection.prepareStatement(
+                    "UPDATE events SET image_path=? WHERE event_id=?");
+            ps.setString(1, imagePath);
+            ps.setInt(2, eventId);
+            ps.executeUpdate();
         } catch (Exception e) {
         }
     }

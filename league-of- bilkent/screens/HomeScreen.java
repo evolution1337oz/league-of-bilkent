@@ -6,20 +6,21 @@ import javax.swing.*;
 /*
  *   HomeScreen
  * 
- * main screen layout
- * card layout for switching panels
+ * main screen layout with card navigation
  * 
  *    buildTopBar  buildSideNav  buildContent
  *    showPanel  showFeed
+ *    startPolling
  * 
- * TODO add navigation methods
- * TODO add polling
+ * TODO add profile navigation
+ * TODO add event detail
  */
 public class HomeScreen extends JFrame {
 
     private java.awt.CardLayout cardLayout;
     private JPanel contentPanel;
     private String currentView = "feed";
+    private JButton messagesNavBtn;
 
     public HomeScreen() {
         setTitle("League of Bilkent");
@@ -32,22 +33,71 @@ public class HomeScreen extends JFrame {
         add(buildTopBar(), java.awt.BorderLayout.NORTH);
         add(buildSideNav(), java.awt.BorderLayout.WEST);
         add(buildContent(), java.awt.BorderLayout.CENTER);
+
+        startPolling();
     }
 
-    // top bar with brand name
+    // gets db state every second to check for changes
+    // needed for network sync so all users see updates
+    private void startPolling() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                int pollCount = 0;
+                int lastHash = Database.getDbStateHash();
+                while (true) {
+                    try {
+                        Thread.sleep(1000);
+                        pollCount++;
+                    } catch (Exception e) {
+                        System.out.println("poll error " + pollCount);
+                    }
+                    if (!isVisible()) {
+                        continue;
+                    }
+                    int newHash = Database.getDbStateHash();
+                    if (newHash != lastHash) {
+                        lastHash = newHash;
+                        // TODO refresh panels when data changes
+                    }
+                }
+            }
+        }).start();
+    }
+
+    // top bar with brand name and search
     private JPanel buildTopBar() {
         JPanel bar = new JPanel();
         bar.setLayout(new BoxLayout(bar, BoxLayout.X_AXIS));
         bar.setBackground(java.awt.Color.WHITE);
         bar.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(226, 232, 240)), BorderFactory.createEmptyBorder(12, 20, 12, 20)));
 
-        // brand label
         JLabel brand = new JLabel("League of Bilkent");
         brand.setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 15));
         brand.setForeground(new java.awt.Color(30, 30, 30));
         bar.add(brand);
 
+        // connection status
+        String connTxt;
+        if (Database.customDbUrl == null) {
+            connTxt = " [Local] ";
+        } else {
+            // split url to get just the ip part
+            connTxt = " [Connected: " + Database.customDbUrl.split("//")[1].split(":")[0] + "] ";
+        }
+        JLabel statusLbl = new JLabel(connTxt);
+        statusLbl.setFont(new java.awt.Font("SansSerif", java.awt.Font.PLAIN, 11));
+        statusLbl.setForeground(new java.awt.Color(100, 116, 139));
+        bar.add(statusLbl);
+
         bar.add(Box.createHorizontalGlue());
+
+        // search field
+        JTextField searchField = panels.UIHelper.createPlaceholderField("Search");
+        searchField.setMaximumSize(new java.awt.Dimension(200, 34));
+        searchField.setPreferredSize(new java.awt.Dimension(200, 34));
+        bar.add(searchField);
+        bar.add(Box.createHorizontalStrut(10));
 
         // logout button
         JButton logoutBtn = new JButton("Logout");
@@ -58,7 +108,6 @@ public class HomeScreen extends JFrame {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
                 dispose();
-                Database.createConnection();
             }
         });
         bar.add(logoutBtn);
@@ -80,9 +129,28 @@ public class HomeScreen extends JFrame {
         nav.add(Box.createVerticalStrut(4));
         nav.add(createNavLink("Calendar", "calendar"));
         nav.add(Box.createVerticalStrut(4));
+        messagesNavBtn = createNavLink("Messages", "messages");
+        nav.add(messagesNavBtn);
+        nav.add(Box.createVerticalStrut(4));
         nav.add(createNavLink("Leaderboard", "leaderboard"));
+        nav.add(Box.createVerticalStrut(4));
+        nav.add(createNavLink("Notifications", "notifications"));
 
         nav.add(Box.createVerticalGlue());
+
+        // network settings button at bottom
+        JButton netBtn = new JButton("Network Settings");
+        netBtn.setFont(new java.awt.Font("SansSerif", java.awt.Font.PLAIN, 11));
+        netBtn.setFocusPainted(false);
+        netBtn.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        netBtn.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 32));
+        netBtn.addActionListener(new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                new panels.NetworkDialog(HomeScreen.this).setVisible(true);
+            }
+        });
+        nav.add(netBtn);
 
         return nav;
     }
@@ -97,12 +165,13 @@ public class HomeScreen extends JFrame {
         contentPanel.add(createPlaceholder("Feed Panel"), "feed");
         contentPanel.add(createPlaceholder("Discover Panel"), "discover");
         contentPanel.add(createPlaceholder("Calendar Panel"), "calendar");
+        contentPanel.add(createPlaceholder("Messages Panel"), "messages");
         contentPanel.add(createPlaceholder("Leaderboard Panel"), "leaderboard");
+        contentPanel.add(createPlaceholder("Notifications Panel"), "notifications");
 
         return contentPanel;
     }
 
-    // creates a placeholder panel with centered text
     private JPanel createPlaceholder(String name) {
         JPanel p = new JPanel(new java.awt.BorderLayout());
         p.setBackground(new java.awt.Color(244, 248, 251));
@@ -113,7 +182,6 @@ public class HomeScreen extends JFrame {
         return p;
     }
 
-    // creates a nav button
     private JButton createNavLink(String text, String panelName) {
         JButton btn = new JButton(text);
         btn.setFont(new java.awt.Font("SansSerif", java.awt.Font.PLAIN, 13));
@@ -135,13 +203,11 @@ public class HomeScreen extends JFrame {
         return btn;
     }
 
-    // switches the visible panel
     public void showPanel(String name) {
         currentView = name;
         cardLayout.show(contentPanel, name);
     }
 
-    // shows the feed panel
     public void showFeed() {
         showPanel("feed");
     }

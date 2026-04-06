@@ -11,11 +11,16 @@ import java.awt.event.*;
  * helper for building ui components
  * all colors hardcoded for now
  *
- *    createButton  createOutlineButton
- *    createLabel  createSmallLabel  createSectionLabel
- *    createStyledField  createPlaceholderField
- *    createCard  createPagePanel  wrapInScroll
- *    showError  showSuccess
+ *    buttons:  createButton createOutlineButton createTagButton
+ *
+ *    labels:   createSmallLabel createLabel createSectionLabel
+ *              createPageTitle createSubtitle
+ *
+ *    inputs:   createStyledField createPlaceholderField getFieldText
+ *
+ *    layout:   createCard createPagePanel wrapInScroll
+ *
+ *    dialogs:  showError showSuccess showConfirm
  */
 public class UIHelper {
 
@@ -57,7 +62,20 @@ public class UIHelper {
         return b;
     }
 
-    
+    // tag button for event tags
+    public static JButton createTagButton(String tag) {
+        JButton b = new JButton(tag);
+        b.setFont(new Font("SansSerif", Font.PLAIN, 11));
+        b.setForeground(new Color(37, 99, 235));
+        b.setBackground(new Color(219, 234, 254));
+        b.setBorder(BorderFactory.createEmptyBorder(4, 10, 4, 10));
+        b.setFocusPainted(false);
+        b.setOpaque(true);
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return b;
+    }
+
+
 
     // ----------------------------labels---------------------------- 
 
@@ -89,6 +107,14 @@ public class UIHelper {
         JLabel l = new JLabel(text);
         l.setFont(new Font("SansSerif", Font.BOLD, 28));
         l.setForeground(new Color(10, 31, 40));
+        l.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return l;
+    }
+
+    public static JLabel createSubtitle(String text) {
+        JLabel l = new JLabel(text);
+        l.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        l.setForeground(new Color(100, 116, 139));
         l.setAlignmentX(Component.LEFT_ALIGNMENT);
         return l;
     }
@@ -139,6 +165,53 @@ public class UIHelper {
         return text;
     }
 
+    // ----------------------------layout----------------------------
+
+    // creates a card panel with shadow border
+    public static JPanel createCard() {
+        JPanel card = new JPanel();
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBackground(Color.WHITE);
+        card.setBorder(BorderFactory.createCompoundBorder(new SoftShadowBorder(), BorderFactory.createEmptyBorder(20, 20, 20, 20)));
+        card.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return card;
+    }
+
+    // shadow border for cards
+    static class SoftShadowBorder extends AbstractBorder {
+        @Override
+        public void paintBorder(Component c, Graphics g, int x, int y, int w, int h) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            for (int i = 0; i < 6; i++) {
+                g2.setColor(new Color(0, 0, 0, 8 - i));
+                g2.drawRoundRect(x + i, y + i, w - i * 2 - 1, h - i * 2 - 1, 18, 18);
+            }
+            g2.dispose();
+        }
+
+        @Override
+        public Insets getBorderInsets(Component c) {
+            return new Insets(6, 6, 6, 6);
+        }
+    }
+
+    public static JPanel createPagePanel() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(new Color(244, 248, 251));
+        panel.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
+        return panel;
+    }
+
+    public static JScrollPane wrapInScroll(JPanel content) {
+        JScrollPane scroll = new JScrollPane(content);
+        scroll.setBorder(null);
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        return scroll;
+    }
+
     // ----------------------------dialogs----------------------------
 
     public static void showError(Component parent, String msg) {
@@ -153,7 +226,6 @@ public class UIHelper {
         return JOptionPane.showConfirmDialog(parent, msg, "Confirm",
                 JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION;
     }
-
 
 
 
