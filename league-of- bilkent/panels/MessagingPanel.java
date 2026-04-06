@@ -83,3 +83,49 @@ public class MessagingPanel extends JPanel {
         JPanel right = new JPanel(new BorderLayout()); //new panel to be placed to the east of the layout
         right.setBackground(Color.WHITE); //background color is white 
         right.setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16)); //creates an 16px empty place around the panel
+
+        chatPanel=new JPanel(); //chat panel is created 
+        chatPanel.setLayout(new BoxLayout(chatPanel, BoxLayout.Y_AXIS)); //elemensts are alligned vertically 
+        chatPanel.setBackground(Color.WHITE); // background color is white 
+
+
+        JScrollPane chatScroll=new JScrollPane(chatPanel); //scrollpane is added in case there is too much messsages
+        chatScroll.setBorder(null); //scrollpane has no borders 
+        chatScroll.getVerticalScrollBar().setUnitIncrement(16); //adjusting the speeed of the scrollpane to a 16px per step
+        right.add(chatScroll, BorderLayout.CENTER); //scrollpane is added to the center of the right panel
+
+        JPanel inputRow= new JPanel(new BorderLayout(4, 0)); // there is a 4px empty space between elements that stands next to each other
+        inputRow.setBackground(Color.WHITE); // background color is set white
+        inputRow.setBorder(BorderFactory.createEmptyBorder(8, 0, 0, 0));
+
+        msgField =new JTextField(); // creating the messeage textfield
+        msgField.setFont(AppConstants.F_NORMAL);
+        msgField.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(AppConstants.BORDER), //creates a thin border around textfield 
+            BorderFactory.createEmptyBorder(6, 8, 6, 8))); //this creates a space between the text and the border
+
+        JButton btnSend = UIHelper.createButton("Send", AppConstants.ACCENT, Color.WHITE); //using uihelper method to create the button
+
+        btnSend.addActionListener(new ActionListener(){ //button calls sendMessage metot when clicked
+            public void actionPerformed(ActionEvent e){
+                sendMessage();
+            }
+        });
+
+        msgField.addActionListener(new ActionListener() { //it calls the senMessage metot when enter button is clicked
+            public void actionPerformed(ActionEvent e){
+                sendMessage();
+            }
+        });
+
+
+        inputRow.add(msgField, BorderLayout.CENTER);//msgField is placed to the cenetr
+        inputRow.add(btnSend, BorderLayout.EAST);// button is placed to the right
+        right.add(inputRow, BorderLayout.SOUTH); //inputRow panel is placed to the bottom of the right panel
+
+        add(right, BorderLayout.CENTER); //right panel is placed at the center of the main panel
+
+        JLabel hint = new JLabel("Select a conversation or start a new one.", JLabel.CENTER); //this text is shown before a user is chosen
+        hint.setForeground(AppConstants.TEXT_LIGHT); //text is lighter
+        chatPanel.add(hint); // hint is added to the chat panel
+    }
