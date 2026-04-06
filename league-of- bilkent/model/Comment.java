@@ -3,6 +3,7 @@ package model;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+// comment on an event, parentId > 0 means its a reply
 public class Comment {
 
     private int id;
