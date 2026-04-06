@@ -51,8 +51,6 @@ public class Event implements Searchable {
              dateTime.plusHours(2), dateTime.minusDays(1), capacity, creatorUsername);
     }
 
-    // basic field accessors
-
     public int getId() {
         return id;
     }
@@ -195,8 +193,6 @@ public class Event implements Searchable {
         return attendanceMap.containsKey(u);
     }
 
-    // update event details
-
     public void setId(int id) {
         this.id = id;
     }
@@ -274,8 +270,6 @@ public class Event implements Searchable {
     public void addComment(Comment c) {
         comments.add(c);
     }
-
-    // search functionality - checks title, description, location, creator, and tags
 
     @Override
     public boolean matchesSearch(String query) {
