@@ -18,22 +18,7 @@ import model.Event;
 import screens.HomeScreen;
 import screens.MainFile;
 
-/*
- * ┌──────────────────────────────────────────────────────────────┐
- * │                <<class>> DiscoverPanel                       │
- * │                   extends JPanel                             │
- * │      Trending events + personalized recommendations         │
- * ├──────────────────────────────────────────────────────────────┤
- * │ - home: HomeScreen                                           │
- * ├──────────────────────────────────────────────────────────────┤
- * │ - buildUI() -> trending section + "For You" section         │
- * │ - createEventRow(event) -> event row with view button       │
- * ├──────────────────────────────────────────────────────────────┤
- * │ USES:    HomeScreen, Database, MainFile, UIHelper,           │
- * │          AppConstants, Event                                 │
- * │ USED BY: HomeScreen (discover nav link)                     │
- * └──────────────────────────────────────────────────────────────┘
- */
+
 public class DiscoverPanel extends JPanel {
 
     private HomeScreen home;
@@ -45,7 +30,7 @@ public class DiscoverPanel extends JPanel {
         buildUI();
     }
 
-    private void buildUI() {
+    private void buildUI() {//creates the uı
         JPanel content = UIHelper.createPagePanel();
 
         content.add(UIHelper.createPageTitle(AppConstants.PAGE_DISCOVER));
@@ -61,7 +46,7 @@ public class DiscoverPanel extends JPanel {
         } 
         else {
             ArrayList<Event> allEvents = Database.getAllEvents();//gets the events database
-            for (int id : popularIds) {
+            for (int id : popularIds){
                 for (Event ev : allEvents) {
                     if (ev.getId() == id) {//if ıd is in the popular ıd list add that ıd in to row
                         content.add(createEventRow(ev));
