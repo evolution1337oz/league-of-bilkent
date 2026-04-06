@@ -5,23 +5,26 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+// holds everything about an event - info, who's attending, comments, tags
+// attendanceMap maps username -> their rsvp status (going/interested/maybe)
+// minTierIndex is 0 if anyone can join, otherwise the minimum tier needed
 public class Event implements Searchable {
 
     private int id;
     private String title;
     private String description;
     private String location;
-    private LocalDateTime dateTime;
-    private LocalDateTime endDateTime;
+    private LocalDateTime dateTime;         // when it starts
+    private LocalDateTime endDateTime;      // when it ends
     private LocalDateTime registrationDeadline;
     private int capacity;
     private String creatorUsername;
     private ArrayList<String> tags;
     private ArrayList<Comment> comments;
     private HashMap<String, AttendanceStatus> attendanceMap;
-    private String imagePath;
-    private int xpReward;
-    private int minTierIndex;
+    private String imagePath;               // poster image path
+    private int xpReward;                   // xp given to attendees
+    private int minTierIndex;               // 0 = anyone can join
 
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd MMM yyyy  HH:mm");
 
@@ -45,13 +48,12 @@ public class Event implements Searchable {
         this.minTierIndex = 0;
     }
 
+    // shorter version, auto sets end to +2hrs and deadline to 1 day before
     public Event(int id, String title, String description, String location,
                  LocalDateTime dateTime, int capacity, String creatorUsername) {
         this(id, title, description, location, dateTime,
              dateTime.plusHours(2), dateTime.minusDays(1), capacity, creatorUsername);
     }
-
-    // basic field accessors
 
     public int getId() {
         return id;
@@ -113,6 +115,7 @@ public class Event implements Searchable {
         return minTierIndex;
     }
 
+    // returns formatted date strings for display
     public String getDateStr() {
         return dateTime.format(FMT);
     }
@@ -131,6 +134,7 @@ public class Event implements Searchable {
         return "";
     }
 
+    // returns the display name for the minimum tier, like "Silver" or "Anyone"
     public String getMinTierName() {
         if (minTierIndex <= 0) {
             return "Anyone";
@@ -138,10 +142,12 @@ public class Event implements Searchable {
         return AppConstants.TIER_NAMES[Math.min(minTierIndex, AppConstants.TIER_NAMES.length - 1)];
     }
 
+    // returns all usernames in the attendance map regardless of status
     public ArrayList<String> getAttendees() {
         return new ArrayList<>(attendanceMap.keySet());
     }
 
+    // filters attendees by a specific status (going, interested, maybe)
     public ArrayList<String> getAttendeesByStatus(AttendanceStatus status) {
         ArrayList<String> list = new ArrayList<>();
         for (var entry : attendanceMap.entrySet()) {
@@ -180,6 +186,7 @@ public class Event implements Searchable {
         return LocalDateTime.now().isAfter(dateTime);
     }
 
+    // checks if the users xp is enough for this events tier requirement
     public boolean canJoin(int userXP) {
         if (minTierIndex <= 0) {
             return true;
@@ -187,6 +194,7 @@ public class Event implements Searchable {
         return AppConstants.getTierIndex(userXP) >= minTierIndex;
     }
 
+    // u = username, returns null if user hasnt rsvpd
     public AttendanceStatus getAttendanceStatus(String u) {
         return attendanceMap.get(u);
     }
@@ -194,8 +202,6 @@ public class Event implements Searchable {
     public boolean isAttending(String u) {
         return attendanceMap.containsKey(u);
     }
-
-    // update event details
 
     public void setId(int id) {
         this.id = id;
@@ -241,6 +247,7 @@ public class Event implements Searchable {
         this.minTierIndex = idx;
     }
 
+    // adds attendees that arent already in the map, defaults them to going
     public void setAttendees(ArrayList<String> attendees) {
         for (String u : attendees) {
             if (!attendanceMap.containsKey(u)) {
@@ -249,6 +256,7 @@ public class Event implements Searchable {
         }
     }
 
+    // u = username, s = their new status
     public void setAttendance(String u, AttendanceStatus s) {
         attendanceMap.put(u, s);
     }
@@ -265,6 +273,7 @@ public class Event implements Searchable {
         removeAttendance(u);
     }
 
+    // wont add duplicates
     public void addTag(String tag) {
         if (!tags.contains(tag)) {
             tags.add(tag);
@@ -275,8 +284,8 @@ public class Event implements Searchable {
         comments.add(c);
     }
 
-    // search functionality - checks title, description, location, creator, and tags
-
+    // searches through title, description, location, creator and tags
+    // query should already be lowercase
     @Override
     public boolean matchesSearch(String query) {
         if (title.toLowerCase().contains(query)) {
