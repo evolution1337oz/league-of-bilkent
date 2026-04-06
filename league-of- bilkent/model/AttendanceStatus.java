@@ -1,6 +1,6 @@
 package model;
 
-// how a user rsvps to an event
+// represents how a user is responding to an event
 public enum AttendanceStatus {
     GOING("Going"),
     INTERESTED("Interested"),
@@ -16,8 +16,9 @@ public enum AttendanceStatus {
         return displayName;
     }
 
-    // converts db string back to enum
+    // parses a string back into a status, useful when reading from database
     public static AttendanceStatus fromString(String s) {
+      
         if (s == null) {
             return null;
         }
@@ -25,11 +26,17 @@ public enum AttendanceStatus {
         String upper = s.toUpperCase();
         if (upper.equals("GOING")) {
             return GOING;
-        } else if (upper.equals("INTERESTED")) {
+        } 
+
+        else if (upper.equals("INTERESTED")) {
             return INTERESTED;
-        } else if (upper.equals("MAYBE")) {
+        } 
+
+        else if (upper.equals("MAYBE")) {
             return MAYBE;
-        } else {
+        } 
+
+        else {
             return null;
         }
     }

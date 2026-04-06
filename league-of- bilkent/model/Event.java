@@ -5,7 +5,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-// main event model, holds all event data + attendance + comments
 public class Event implements Searchable {
 
     private int id;
@@ -51,6 +50,8 @@ public class Event implements Searchable {
         this(id, title, description, location, dateTime,
              dateTime.plusHours(2), dateTime.minusDays(1), capacity, creatorUsername);
     }
+
+    // basic field accessors
 
     public int getId() {
         return id;
@@ -179,7 +180,6 @@ public class Event implements Searchable {
         return LocalDateTime.now().isAfter(dateTime);
     }
 
-    // checks if user's tier is high enough for this event
     public boolean canJoin(int userXP) {
         if (minTierIndex <= 0) {
             return true;
@@ -194,6 +194,8 @@ public class Event implements Searchable {
     public boolean isAttending(String u) {
         return attendanceMap.containsKey(u);
     }
+
+    // update event details
 
     public void setId(int id) {
         this.id = id;
@@ -272,6 +274,8 @@ public class Event implements Searchable {
     public void addComment(Comment c) {
         comments.add(c);
     }
+
+    // search functionality - checks title, description, location, creator, and tags
 
     @Override
     public boolean matchesSearch(String query) {

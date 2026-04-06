@@ -3,15 +3,15 @@ package model;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-// comment on an event, parentId > 0 means its a reply
 public class Comment {
 
     private int id;
     private String username;
     private String text;
     private String time;
-    private int parentId;
+    private int parentId; // 0 means top-level, anything above 0 is a reply to that comment
 
+    // quick comment with auto-generated timestamp
     public Comment(String username, String text) {
         this.id = 0;
         this.username = username;
@@ -20,6 +20,7 @@ public class Comment {
         this.parentId = 0;
     }
 
+    // comment with a specific time
     public Comment(String username, String text, String time) {
         this.id = 0;
         this.username = username;
@@ -28,6 +29,7 @@ public class Comment {
         this.parentId = 0;
     }
 
+    // full constructor, usually when loading from database
     public Comment(int id, String username, String text, String time, int parentId) {
         this.id = id;
         this.username = username;
@@ -35,6 +37,8 @@ public class Comment {
         this.time = time;
         this.parentId = parentId;
     }
+
+    // basic field accessors
 
     public int getId() {
         return id;
