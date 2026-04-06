@@ -9,6 +9,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.time.LocalDateTime;
 
+// event creation form, validates and saves to db
 public class CreateEventPanel extends JPanel {
 
     private HomeScreen home;
@@ -233,6 +234,7 @@ public class CreateEventPanel extends JPanel {
         }
     }
 
+    // validates fields, saves event, notifies followers
     private void handleCreate() {
         String t = UIHelper.getFieldText(titleField, AppConstants.PH_EVENT_TITLE);
         if (t.isEmpty()) {
