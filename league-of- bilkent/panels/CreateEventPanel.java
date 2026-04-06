@@ -9,7 +9,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.time.LocalDateTime;
 
-// form panel where users fill in event details and submit
 public class CreateEventPanel extends JPanel {
 
     private HomeScreen home;
@@ -30,7 +29,6 @@ public class CreateEventPanel extends JPanel {
         buildUI();
     }
 
-    // puts together the whole form top to bottom
     private void buildUI() {
         JPanel form = UIHelper.createPagePanel();
 
@@ -39,7 +37,7 @@ public class CreateEventPanel extends JPanel {
         form.add(UIHelper.createSubtitle(AppConstants.PAGE_CREATE_SUB));
         form.add(Box.createVerticalStrut(24));
 
-        // title input
+
         form.add(createFieldLabel(AppConstants.FIELD_EVENT_TITLE));
         titleField = UIHelper.createPlaceholderField(AppConstants.PH_EVENT_TITLE);
         titleField.setAlignmentX(LEFT_ALIGNMENT);
@@ -47,7 +45,7 @@ public class CreateEventPanel extends JPanel {
         form.add(titleField);
         form.add(Box.createVerticalStrut(16));
 
-        // description input
+
         form.add(createFieldLabel(AppConstants.FIELD_DESCRIPTION));
         descArea = new JTextArea(3, 30);
         descArea.setFont(AppConstants.F_NORMAL);
@@ -62,7 +60,7 @@ public class CreateEventPanel extends JPanel {
         form.add(descScroll);
         form.add(Box.createVerticalStrut(16));
 
-        // location input
+
         form.add(createFieldLabel(AppConstants.FIELD_LOCATION));
         locationField = UIHelper.createPlaceholderField(AppConstants.PH_LOCATION);
         locationField.setAlignmentX(LEFT_ALIGNMENT);
@@ -70,7 +68,7 @@ public class CreateEventPanel extends JPanel {
         form.add(locationField);
         form.add(Box.createVerticalStrut(16));
 
-        // poster image picker
+
         form.add(createFieldLabel(AppConstants.FIELD_POSTER));
         JPanel imgRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         imgRow.setBackground(Color.WHITE);
@@ -88,7 +86,7 @@ public class CreateEventPanel extends JPanel {
         form.add(UIHelper.createSeparator());
         form.add(Box.createVerticalStrut(16));
 
-        // date and time section
+
         form.add(UIHelper.createSectionLabel(AppConstants.SEC_DATE_TIME));
         form.add(Box.createVerticalStrut(12));
 
@@ -126,7 +124,7 @@ public class CreateEventPanel extends JPanel {
         form.add(UIHelper.createSeparator());
         form.add(Box.createVerticalStrut(16));
 
-        // capacity and xp settings
+
         form.add(UIHelper.createSectionLabel(AppConstants.SEC_SETTINGS));
         form.add(Box.createVerticalStrut(12));
 
@@ -158,7 +156,7 @@ public class CreateEventPanel extends JPanel {
         form.add(twoCol);
         form.add(Box.createVerticalStrut(12));
 
-        // tier restriction dropdown
+
         form.add(createFieldLabel(AppConstants.FIELD_MIN_TIER));
         String[] tierOptions = new String[AppConstants.TIER_NAMES.length + 1];
         tierOptions[0] = "Anyone";
@@ -172,7 +170,7 @@ public class CreateEventPanel extends JPanel {
         form.add(tierCombo);
         form.add(Box.createVerticalStrut(12));
 
-        // tags input
+
         form.add(createFieldLabel(AppConstants.FIELD_TAGS));
         tagsField = UIHelper.createPlaceholderField(AppConstants.PH_TAGS);
         tagsField.setAlignmentX(LEFT_ALIGNMENT);
@@ -180,7 +178,7 @@ public class CreateEventPanel extends JPanel {
         form.add(tagsField);
         form.add(Box.createVerticalStrut(24));
 
-        // submit button
+
         JButton btnCreate = UIHelper.createButton(AppConstants.BTN_CREATE, AppConstants.PRIMARY, Color.WHITE);
         btnCreate.setAlignmentX(LEFT_ALIGNMENT);
         btnCreate.setMaximumSize(new Dimension(200, 44));
@@ -191,7 +189,6 @@ public class CreateEventPanel extends JPanel {
         add(UIHelper.wrapInScroll(form), BorderLayout.CENTER);
     }
 
-    // builds a row of day/month/year spinners, optionally with hour and minute
     private JPanel createDateRow(LocalDateTime now, boolean withTime) {
         JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
         row.setBackground(Color.WHITE);
@@ -226,7 +223,6 @@ public class CreateEventPanel extends JPanel {
         return row;
     }
 
-    // opens a file picker so user can select a poster image
     private void chooseImage() {
         JFileChooser fc = new JFileChooser();
         fc.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Images", "jpg", "jpeg", "png", "gif"));
@@ -237,7 +233,6 @@ public class CreateEventPanel extends JPanel {
         }
     }
 
-    // validates form fields, creates the event, notifies followers, and goes back to feed
     private void handleCreate() {
         String t = UIHelper.getFieldText(titleField, AppConstants.PH_EVENT_TITLE);
         if (t.isEmpty()) {
@@ -270,7 +265,6 @@ public class CreateEventPanel extends JPanel {
             ev.setXpReward((int) xpSpin.getValue());
             ev.setMinTierIndex(tierCombo.getSelectedIndex());
 
-            // parse comma-separated tags
             String tags = UIHelper.getFieldText(tagsField, AppConstants.PH_TAGS);
             if (!tags.isEmpty()) {
                 for (String tag : tags.split(",")) {
@@ -281,7 +275,6 @@ public class CreateEventPanel extends JPanel {
                 }
             }
 
-            // auto-generate a poster if none was picked
             if (ev.getImagePath() == null || ev.getImagePath().isEmpty()) {
                 String generated = PosterGenerator.generateDefault(ev);
                 if (generated != null) {
@@ -293,7 +286,6 @@ public class CreateEventPanel extends JPanel {
             ev.setId(id);
             Database.addXP(MainFile.currentUser.getUsername(), AppConstants.XP_CREATE_EVENT);
 
-            // let followers know about the new event
             String notifMsg = String.format(AppConstants.NOTIF_NEW_EVENT,
                 MainFile.currentUser.getDisplayName(), t);
             for (String follower : MainFile.currentUser.getFollowers()) {
@@ -307,7 +299,6 @@ public class CreateEventPanel extends JPanel {
         }
     }
 
-    // small helper to make consistent form labels
     private JLabel createFieldLabel(String text) {
         JLabel l = new JLabel(text);
         l.setFont(AppConstants.F_SMALL);
