@@ -23,7 +23,8 @@ public class NetworkManager {
     private static boolean isBroadcasting = false;
 
     public static class DiscoveredHost {
-        public String ip; // ip address of the discovered host (we will use this to connect hosts database)
+        public String ip; // ip address of the discovered host (we will use this to connect hosts
+                          // database)
         public long lastSeen; // to change if host is not seen for 8 seconds
 
         public DiscoveredHost(String _ip) {
@@ -33,14 +34,16 @@ public class NetworkManager {
     }
 
     public static List<DiscoveredHost> discoveredHosts = new ArrayList<>(); // list of discovered hosts
-    public static Runnable onHostFound; // when we find a new host this will trigger MainFile.java script will catch and get ip from here (discoveredHosts)
+    public static Runnable onHostFound; // when we find a new host this will trigger MainFile.java script will catch and
+                                        // get ip from here (discoveredHosts)
     public static boolean isClientMode = true; // true if client mode, false if host mode
 
     // Get local ip so we know who we are on the network
     static {
         try {
             try (final DatagramSocket tempSocket = new DatagramSocket()) {
-                tempSocket.connect(InetAddress.getByName("8.8.8.8"), 10002); // this sends a fake packet to google dns to find local ip
+                tempSocket.connect(InetAddress.getByName("8.8.8.8"), 10002); // this sends a fake packet to google dns
+                                                                             // to find local ip
                 myIp = tempSocket.getLocalAddress().getHostAddress(); // this gets the local ip
             }
         } catch (Exception e) {
@@ -70,11 +73,14 @@ public class NetworkManager {
 
         discoveredHosts.clear();
         if (isClientMode) {
-            startDiscovery();
+            model.Database.customDbUrl = null;
+            startDiscovery(); // client
         } else {
-            startBroadcasting();
+            model.Database.customDbUrl = null;
+            startBroadcasting(); // host
         }
-        // TODO reconnect database after mode change
+
+        model.Database.createConnection();
     }
 
     // this starts broadcasting for host mode
@@ -99,13 +105,18 @@ public class NetworkManager {
 
                     while (isBroadcasting) {
 
-                        String message = "LOB_HOST:" + myIp + ":" + myUUID; // format => leauge of bilkent host : ip : uuid
+                        String message = "LOB_HOST:" + myIp + ":" + myUUID; // format => leauge of bilkent host : ip :
+                                                                            // uuid
 
                         byte[] byteMessage = message.getBytes();
 
                         try {
                             socket.send(new DatagramPacket(byteMessage, byteMessage.length,
-                                    InetAddress.getByName("255.255.255.255"), DISCOVERY_PORT)); // this sends the message to all devices that are connected to DISCOVERY_PORT
+                                    InetAddress.getByName("255.255.255.255"), DISCOVERY_PORT)); // this sends the
+                                                                                                // message to all
+                                                                                                // devices that are
+                                                                                                // connected to
+                                                                                                // DISCOVERY_PORT
                         } catch (Exception e) {
                         }
 
@@ -114,7 +125,9 @@ public class NetworkManager {
                         while (interfaces.hasMoreElements()) {
                             NetworkInterface networkInterface = interfaces.nextElement();
 
-                            if (networkInterface.isLoopback() || !networkInterface.isUp()) { // if it comes from localgost or disabled skip it
+                            if (networkInterface.isLoopback() || !networkInterface.isUp()) { // if it comes from
+                                                                                             // localgost or disabled,
+                                                                                             // skip it
                                 continue;
                             }
 
@@ -125,7 +138,8 @@ public class NetworkManager {
                                 }
                                 try {
                                     socket.send(new DatagramPacket(byteMessage, byteMessage.length, broadcast,
-                                            DISCOVERY_PORT)); // send the message to all devices that are connected to DISCOVERY_PORT
+                                            DISCOVERY_PORT)); // send the message to all devices that are connected to
+                                                              // DISCOVERY_PORT
                                 } catch (Exception e) {
                                 }
                             }
@@ -167,7 +181,8 @@ public class NetworkManager {
                         DatagramPacket packet = new DatagramPacket(byteMessage, byteMessage.length);
                         discoverySocket.receive(packet); // waits to receive a packet from host
 
-                        String incomingMessage = new String(packet.getData(), 0, packet.getLength()); // converts the byte to String
+                        String incomingMessage = new String(packet.getData(), 0, packet.getLength()); // converts the
+                                                                                                      // byte to String
 
                         if (incomingMessage.startsWith("LOB_HOST:")) { // check if this is our programs packet
 
@@ -191,7 +206,8 @@ public class NetworkManager {
                                     for (DiscoveredHost activeHost : discoveredHosts) {
                                         if (activeHost.ip.equals(hostIp)) {
                                             hostExists = true;
-                                            activeHost.lastSeen = System.currentTimeMillis(); // update the last time we saw this host
+                                            activeHost.lastSeen = System.currentTimeMillis(); // update the last time we
+                                                                                              // saw this host
                                             break;
                                         }
                                     }
@@ -215,8 +231,37 @@ public class NetworkManager {
             }
         }).start();
 
-        // TODO remove unactive hosts
-        
+        // this thread checks for inactive hosts and removes them
+        new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+
+                while (isDiscovering) {
+                    try {
+                        Thread.sleep(5000); // wait for 5 seconds between checks
+
+                        long currentTime = System.currentTimeMillis();
+
+                        // remove hosts that we haven't seen for 8 seconds
+                        boolean isAnyHostRemoved = false;
+                        java.util.Iterator<DiscoveredHost> iterator = discoveredHosts.iterator();
+                        while (iterator.hasNext()) {
+                            DiscoveredHost activeHost = iterator.next();
+                            if ((currentTime - activeHost.lastSeen) > 8000) {
+                                iterator.remove();
+                                isAnyHostRemoved = true;
+                            }
+                        }
+
+                        if (isAnyHostRemoved && onHostFound != null) {
+                            SwingUtilities.invokeLater(onHostFound); // notify the UI if a host was removed
+                        }
+                    } catch (Exception e) {
+                    }
+                }
+            }
+        }).start();
     }
 
     public static void stopDiscovery() {
