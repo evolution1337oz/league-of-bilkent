@@ -6,21 +6,32 @@ import java.util.ArrayList;
 /*
  *   Database
  * 
- *   mysql connection and basic queries
- *   for testing
+ *   mysql connection and queries
+ *   createConnection  createTables
+ *   testInsert  printAll  isDatabaseEmpty
+ *   addUserInterest  addEventTag
  */
 public class Database {
 
     public static Connection databaseConnection;
 
-    // connects to the local mysql database
+    public static String customDbUrl = null;
+
+    // connects to mysql database
     public static void createConnection() {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
 
-            databaseConnection = DriverManager.getConnection(
-                    "jdbc:mysql://localhost:3306/league_of_bilkent?createDatabaseIfNotExist=true",
-                    "root", "1234");
+            String dbUrl = "jdbc:mysql://localhost:3306/league_of_bilkent?createDatabaseIfNotExist=true";
+            String dbUser = "root";
+            String dbPass = "1234";
+
+            // if we are connecting to another host use their url
+            if (customDbUrl != null) {
+                dbUrl = customDbUrl;
+            }
+
+            databaseConnection = DriverManager.getConnection(dbUrl, dbUser, dbPass);
             createTables();
         } catch (Exception e) {
             System.out.println("could not connect to database: " + e.getMessage());
@@ -28,6 +39,7 @@ public class Database {
     }
 
     private static void createTables() {
+
         try (Statement st = databaseConnection.createStatement()) {
 
             // users table
@@ -41,7 +53,8 @@ public class Database {
                     "is_club TINYINT DEFAULT 0)");
 
             // events table
-            // (event_id, title, description, location, date_time, capacity, creator_username)
+            // (event_id, title, description, location, date_time, capacity,
+            // creator_username)
             st.executeUpdate("CREATE TABLE IF NOT EXISTS events " +
                     "(event_id INT AUTO_INCREMENT PRIMARY KEY, " +
                     "title VARCHAR(200), " +
@@ -51,59 +64,124 @@ public class Database {
                     "capacity INT, " +
                     "creator_username VARCHAR(50))");
 
+            // user interests (username, interest)
+            st.executeUpdate("CREATE TABLE IF NOT EXISTS user_interests " +
+                    "(username VARCHAR(50), " +
+                    "interest VARCHAR(55), " +
+                    "PRIMARY KEY (username, interest))");
+
+            // event tags (event_id, tag)
+            st.executeUpdate("CREATE TABLE IF NOT EXISTS event_tags " +
+                    "(event_id INT, " +
+                    "tag VARCHAR(50), " +
+                    "PRIMARY KEY (event_id, tag))");
+
         } catch (Exception e) {
             System.out.println("table creation fail: " + e.getMessage());
         }
     }
 
-    // ----------------------------test methods----------------------------
+    // // ----------------------------test methods----------------------------
 
-    // inserts a user directly for testing
-    public static void testInsertUser(String username, String displayName, String email, String password) {
+    // // inserts a user directly for testing
+    // public static void testInsertUser(String username, String displayName, String
+    // email, String password) {
+    // try {
+    // PreparedStatement ps = databaseConnection.prepareStatement(
+    // "INSERT IGNORE INTO users (username,display_name,email,password)
+    // VALUES(?,?,?,?)");
+    // ps.setString(1, username);
+    // ps.setString(2, displayName);
+    // ps.setString(3, email);
+    // ps.setString(4, password);
+    // ps.executeUpdate();
+    // System.out.println("inserted user: " + username);
+    // } catch (Exception e) {
+    // e.printStackTrace();
+    // }
+    // }
+
+    // // inserts an event directly for testing
+    // public static int testInsertEvent(String title, String desc, String location,
+    // String dateTime, int capacity, String creator) {
+    // int generatedID = -1;
+    // try {
+    // PreparedStatement ps = databaseConnection.prepareStatement(
+    // "INSERT INTO events
+    // (title,description,location,date_time,capacity,creator_username)
+    // VALUES(?,?,?,?,?,?)",
+    // Statement.RETURN_GENERATED_KEYS);
+    // ps.setString(1, title);
+    // ps.setString(2, desc);
+    // ps.setString(3, location);
+    // ps.setString(4, dateTime);
+    // ps.setInt(5, capacity);
+    // ps.setString(6, creator);
+    // ps.executeUpdate();
+    // ResultSet rs = ps.getGeneratedKeys();
+    // if (rs.next()) {
+    // generatedID = rs.getInt(1);
+    // }
+    // System.out.println("inserted event: " + title + " id=" + generatedID);
+    // } catch (Exception e) {
+    // e.printStackTrace();
+    // }
+    // return generatedID;
+    // }
+
+    // ----------------------------interests/tags----------------------------
+
+    public static void addUserInterest(String username, String interest) {
         try {
-            PreparedStatement ps = databaseConnection.prepareStatement(
-                    "INSERT IGNORE INTO users (username,display_name,email,password) VALUES(?,?,?,?)");
-            ps.setString(1, username);
-            ps.setString(2, displayName);
-            ps.setString(3, email);
-            ps.setString(4, password);
-            ps.executeUpdate();
-            System.out.println("inserted user: " + username);
+            databaseConnection.createStatement()
+                    .executeUpdate("INSERT IGNORE INTO user_interests VALUES('" + username + "','" + interest + "')");
         } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 
-    // inserts an event directly for testing
-    public static int testInsertEvent(String title, String desc, String location,
-            String dateTime, int capacity, String creator) {
-        int generatedID = -1;
+    public static void addEventTag(int eventId, String tag) {
+        try {
+            databaseConnection.createStatement()
+                    .executeUpdate("INSERT IGNORE INTO event_tags VALUES(" + eventId + ",'" + tag + "')");
+        } catch (Exception e) {
+        }
+    }
+
+    public static ArrayList<String> getUserInterests(String username) {
+        ArrayList<String> list = new ArrayList<>();
         try {
             PreparedStatement ps = databaseConnection.prepareStatement(
-                    "INSERT INTO events (title,description,location,date_time,capacity,creator_username) VALUES(?,?,?,?,?,?)",
-                    Statement.RETURN_GENERATED_KEYS);
-            ps.setString(1, title);
-            ps.setString(2, desc);
-            ps.setString(3, location);
-            ps.setString(4, dateTime);
-            ps.setInt(5, capacity);
-            ps.setString(6, creator);
-            ps.executeUpdate();
-            ResultSet rs = ps.getGeneratedKeys();
-            if (rs.next()) {
-                generatedID = rs.getInt(1);
+                    "SELECT interest FROM user_interests WHERE username=?");
+            ps.setString(1, username);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                list.add(rs.getString("interest"));
             }
-            System.out.println("inserted event: " + title + " id=" + generatedID);
         } catch (Exception e) {
-            e.printStackTrace();
         }
-        return generatedID;
+        return list;
+    }
+
+    public static ArrayList<String> getEventTags(int eventId) {
+        ArrayList<String> list = new ArrayList<>();
+        try {
+            PreparedStatement ps = databaseConnection.prepareStatement(
+                    "SELECT tag FROM event_tags WHERE event_id=?");
+            ps.setInt(1, eventId);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                list.add(rs.getString("tag"));
+            }
+        } catch (Exception e) {
+        }
+        return list;
     }
 
     // ----------------------------queries----------------------------
 
     // prints all users from db
     public static void printAllUsers() {
+
         try {
             ResultSet rs = databaseConnection.createStatement()
                     .executeQuery("SELECT * FROM users");
@@ -150,10 +228,10 @@ public class Database {
     // deletes a user by username
     public static void deleteUser(String username) {
         try {
-            PreparedStatement ps = databaseConnection.prepareStatement(
-                    "DELETE FROM users WHERE username=?");
-            ps.setString(1, username);
-            ps.executeUpdate();
+            databaseConnection.createStatement()
+                    .executeUpdate("DELETE FROM user_interests WHERE username='" + username + "'");
+            databaseConnection.createStatement()
+                    .executeUpdate("DELETE FROM users WHERE username='" + username + "'");
         } catch (Exception e) {
         }
     }
@@ -161,10 +239,10 @@ public class Database {
     // deletes an event by id
     public static void deleteEvent(int eventId) {
         try {
-            PreparedStatement ps = databaseConnection.prepareStatement(
-                    "DELETE FROM events WHERE event_id=?");
-            ps.setInt(1, eventId);
-            ps.executeUpdate();
+            databaseConnection.createStatement()
+                    .executeUpdate("DELETE FROM event_tags WHERE event_id=" + eventId);
+            databaseConnection.createStatement()
+                    .executeUpdate("DELETE FROM events WHERE event_id=" + eventId);
         } catch (Exception e) {
         }
     }
