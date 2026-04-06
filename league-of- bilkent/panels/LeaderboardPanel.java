@@ -171,8 +171,5 @@ public class LeaderboardPanel extends JPanel {
         return row;
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // Ege Yiğit Yıldırım - League of Bilkent
-    // Component enhancements and UI polish applied
-    // ═══════════════════════════════════════════════════════════════
+
 }
