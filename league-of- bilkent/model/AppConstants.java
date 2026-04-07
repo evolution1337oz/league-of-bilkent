@@ -100,12 +100,20 @@ public class AppConstants {
 
     public static int getNextTierXP(int xp) {
         int i = getTierIndex(xp);
-        return i < TIER_THRESHOLDS.length - 1 ? TIER_THRESHOLDS[i + 1] : -1;
+        if (i < TIER_THRESHOLDS.length - 1) {
+            return TIER_THRESHOLDS[i + 1];
+        } else {
+            return -1;
+        }
     }
 
     public static String getNextTierName(int xp) {
         int i = getTierIndex(xp);
-        return i < TIER_NAMES.length - 1 ? TIER_NAMES[i + 1] : "MAX";
+        if (i < TIER_NAMES.length - 1) {
+            return TIER_NAMES[i + 1];
+        } else {
+            return "MAX";
+        }
     }
 
 
