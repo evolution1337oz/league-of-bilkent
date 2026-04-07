@@ -1,12 +1,5 @@
 package panels;
 
-import model.*;
-import model.Event;
-import screens.*;
-import tools.*;
-
-import javax.swing.*;
-import javax.swing.border.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;
@@ -15,6 +8,11 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.stream.Collectors;
+import javax.swing.*;
+import model.*;
+import model.Event;
+import screens.*;
+import tools.*;
 
 
 public class FeedPanel extends JPanel {
@@ -187,7 +185,13 @@ public class FeedPanel extends JPanel {
 
             final String emoji = catEmoji;
             final Color bgColor = posterBg;
-            String firstTag = ev.getTags().isEmpty() ? "" : ev.getTags().get(0).toLowerCase();
+
+            String firstTag;
+            if (ev.getTags().isEmpty()) {
+                firstTag = "";
+            } else {
+                firstTag = ev.getTags().get(0).toLowerCase();
+            }
 
             JPanel card = new JPanel() {
                 @Override
@@ -334,7 +338,14 @@ public class FeedPanel extends JPanel {
         JLabel name = new JLabel(ev.getTitle());
         name.setFont(AppConstants.F_SECTION);
         info.add(name);
-        String whyText = reason.isEmpty() ? "Recommended for you" : "Because you like " + reason;
+
+        String whyText;
+        if (reason.isEmpty()) {
+            whyText = "Recommended for you";
+        } else {
+            whyText = "Because you like " + reason;
+        }
+
         JLabel why = new JLabel(whyText);
         why.setFont(AppConstants.F_TINY);
         why.setForeground(AppConstants.TEAL);
@@ -370,12 +381,22 @@ public class FeedPanel extends JPanel {
 
     private JButton createPill(String text, boolean active) {
         JButton b = new JButton(text);
-        b.setFont(new Font("SansSerif", active ? Font.BOLD : Font.PLAIN, 12));
-        b.setForeground(active ? Color.WHITE : AppConstants.TEXT_SEC);
-        b.setBackground(active ? AppConstants.TEAL : Color.WHITE);
-        b.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(active ? AppConstants.TEAL : AppConstants.BORDER, 1, true),
-            BorderFactory.createEmptyBorder(6, 14, 6, 14)));
+        if (active) {
+            b.setFont(new Font("SansSerif", Font.BOLD, 12));
+            b.setForeground(Color.WHITE);
+            b.setBackground(AppConstants.TEAL);
+            b.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(AppConstants.TEAL, 1, true),
+                BorderFactory.createEmptyBorder(6, 14, 6, 14)));
+        } 
+        else {
+            b.setFont(new Font("SansSerif", Font.PLAIN, 12));
+            b.setForeground(AppConstants.TEXT_SEC);
+            b.setBackground(Color.WHITE);
+            b.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(AppConstants.BORDER, 1, true),
+                BorderFactory.createEmptyBorder(6, 14, 6, 14)));
+        }
         b.setFocusPainted(false);
         b.setOpaque(true);
         b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
