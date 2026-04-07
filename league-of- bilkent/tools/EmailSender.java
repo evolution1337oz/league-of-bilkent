@@ -7,8 +7,7 @@ import java.util.Random;
 import javax.mail.*;
 import javax.mail.internet.*;
 import java.io.FileInputStream;
-import java.net.Authenticator;
-import java.net.PasswordAuthentication;
+
 
 // Email sender class to check whether user is university student. 
 public class EmailSender {

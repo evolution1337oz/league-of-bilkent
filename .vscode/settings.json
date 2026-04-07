@@ -1,0 +1,8 @@
+{
+    "java.project.referencedLibraries": [
+        "lib/**/*.jar",
+        "league-of- bilkent/lib/javax.activation.jar",
+        "league-of- bilkent/lib/javax.mail.jar",
+        "league-of- bilkent/lib/mysql-connector-j.jar"
+    ]
+}
