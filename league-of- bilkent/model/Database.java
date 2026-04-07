@@ -978,4 +978,19 @@ public class Database {
         } catch (Exception e) {
         }
     }
+    public static void updateUserDisplayName(String _username, String _newName) {
+        try {
+            
+            PreparedStatement ps = databaseConnection.prepareStatement(
+                    "UPDATE users SET display_name=? WHERE username=?");
+ 
+            ps.setString(1, _newName);    
+            ps.setString(2, _username);   
+ 
+            ps.executeUpdate(); 
+        } 
+        catch (Exception e) {
+            System.out.println("updateUserDisplayName error: " + e.getMessage());
+        }
+    }
 }

@@ -72,7 +72,50 @@ public class ProfilePanel extends JPanel {
 
         nameLbl.setFont(new Font("SansSerif", Font.BOLD, 22));
         nameLbl.setForeground(AppConstants.TEXT_PRI); // main text color
-        nameCol.add(nameLbl); // added to the left panel
+        if (!isOtherUser) {
+ 
+            
+            JPanel nameRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+            nameRow.setOpaque(false);          
+            nameRow.setAlignmentX(LEFT_ALIGNMENT); 
+ 
+            nameRow.add(nameLbl); 
+ 
+            
+            JButton editNameBtn = UIHelper.createOutlineButton("\u270F Edit Name", AppConstants.ACCENT);
+            editNameBtn.setFont(AppConstants.F_SMALL); 
+ 
+            editNameBtn.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+ 
+                    
+                    String newName = JOptionPane.showInputDialog(
+                            ProfilePanel.this,
+                            "Enter new display name:",   
+                            user.getDisplayName());     
+ 
+                    
+                    if (newName != null && !newName.trim().isEmpty()) {
+ 
+                        
+                        Database.updateUserDisplayName(user.getUsername(), newName.trim());
+ 
+                        
+                        user.setDisplayName(newName.trim());
+ 
+                        
+                        home.showMyProfile();
+                    }
+                }
+            });
+ 
+            nameRow.add(editNameBtn); 
+            nameCol.add(nameRow);    
+ 
+        } else {
+            
+            nameCol.add(nameLbl);
+        }
 
         String labelText = "@" + user.getUsername();
 
