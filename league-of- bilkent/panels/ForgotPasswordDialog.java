@@ -84,19 +84,8 @@ public class ForgotPasswordDialog extends JDialog {
         form.add(codePanel, gc);
 
         // Listeners
-        btnSendCode.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                handleSendCode();
-            }
-        });
-
-        btnReset.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                handleReset();
-            }
-        });
+        btnSendCode.addActionListener(e -> handleSendCode());
+        btnReset.addActionListener(e -> handleReset());
 
         return form;
     }
