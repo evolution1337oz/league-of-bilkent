@@ -210,7 +210,7 @@ public class HomeScreen extends JFrame {
         // Create
         JButton btnCreate = new JButton("+ Create");
         btnCreate.setFont(new Font("SansSerif", Font.BOLD, 12));
-        btnCreate.setForeground(Color.WHITE);
+        btnCreate.setForeground(Color.BLACK);
         btnCreate.setBackground(AppConstants.TEAL);
         btnCreate.setBorder(BorderFactory.createEmptyBorder(6, 14, 6, 14));
         btnCreate.setFocusPainted(false);
