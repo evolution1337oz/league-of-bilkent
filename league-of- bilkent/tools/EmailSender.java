@@ -12,27 +12,12 @@ import java.io.FileInputStream;
 // Email sender class to check whether user is university student. 
 public class EmailSender {
 
-    private static String SENDER_EMAIL;
-    private static String SENDER_PASSWORD;
-    private static String SMTP_HOST;
-    private static int SMTP_PORT;
+    private static final String SENDER_EMAIL = "osmantustas19@gmail.com";
+    private static final String SENDER_PASSWORD = "rjhp qxur omwn ecyv"; 
+    private static final String SMTP_HOST = "smtp.gmail.com";
+    private static final int SMTP_PORT = 587;
     private static final Random random = new Random();
-
-    static {
-        try {
-            Properties creds = new Properties();
-            creds.load(new FileInputStream("credentials.properties"));
-            SENDER_EMAIL = creds.getProperty("email.sender", "");
-            SENDER_PASSWORD = creds.getProperty("email.password", "");
-            SMTP_HOST = creds.getProperty("email.smtp.host", "smtp.gmail.com");
-            SMTP_PORT = Integer.parseInt(creds.getProperty("email.smtp.port", "587"));
-        } catch (Exception e) {
-            SENDER_EMAIL = "";
-            SENDER_PASSWORD = "";
-            SMTP_HOST = "smtp.gmail.com";
-            SMTP_PORT = 587;
-        }
-    }
+   
 
     public static int generateCode() { // generate random verification code
        return random.nextInt(AppConstants.VERIFICATION_CODE_MIN, AppConstants.VERIFICATION_CODE_MAX);

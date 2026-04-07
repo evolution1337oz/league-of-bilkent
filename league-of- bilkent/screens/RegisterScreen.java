@@ -101,7 +101,7 @@ public class RegisterScreen extends JPanel {
                 "Email Verification", JOptionPane.QUESTION_MESSAGE);
         } else {
             input = JOptionPane.showInputDialog(this,
-                "Email could not be sent.\nYour verification code is: " + verificationCode + "\nEnter it below to confirm:",
+                "Email could not be sent.\n Tyr Later",
                 "Email Verification (Fallback)", JOptionPane.WARNING_MESSAGE);
         }
 

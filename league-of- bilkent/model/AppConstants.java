@@ -4,6 +4,11 @@ import java.awt.Color;
 import java.awt.Font;
 import java.io.FileInputStream;
 import java.util.Properties;
+<<<<<<< Updated upstream
+=======
+
+// Constant values
+>>>>>>> Stashed changes
 public class AppConstants {
 
 
