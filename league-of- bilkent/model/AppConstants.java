@@ -4,30 +4,6 @@ import java.awt.Color;
 import java.awt.Font;
 import java.io.FileInputStream;
 import java.util.Properties;
-
-/*
- * ┌──────────────────────────────────────────────────────────────────┐
- * │                  <<class>> AppConstants                          │
- * │              Centralized configuration (all static final)       │
- * ├──────────────────────────────────────────────────────────────────┤
- * │ PALETTE:   TEAL, PRIMARY, ACCENT, SUCCESS, DANGER, WARNING      │
- * │            BG_MAIN, BORDER, TEXT_PRI/SEC/LIGHT/MUTED             │
- * │ FONTS:     F_HERO, F_BIG, F_TITLE, F_SECTION, F_NORMAL, etc.   │
- * │ LAYOUT:    WINDOW_WIDTH/HEIGHT, CARD_RADIUS, FEED_COLUMNS       │
- * │ TIER:      TIER_NAMES[], TIER_THRESHOLDS[], TIER_COLORS[]       │
- * │ XP:        XP_CREATE_EVENT, XP_ATTEND_EVENT, XP_COMMENT, etc.   │
- * │ DB:        DB_URL, DB_USER, DB_PASS                              │
- * │ STRINGS:   All UI labels, error messages, placeholders           │
- * ├──────────────────────────────────────────────────────────────────┤
- * │ + getTierIndex(xp): int -> which tier the XP falls into         │
- * │ + getTierName(xp): String -> display name for tier              │
- * │ + getTierColor(xp): Color -> color for tier                     │
- * │ + getNextTierXP(xp): int -> XP needed for next tier             │
- * │ + getNextTierName(xp): String -> name of next tier              │
- * ├──────────────────────────────────────────────────────────────────┤
- * │ USED BY: Every class in the project                              │
- * └──────────────────────────────────────────────────────────────────┘
- */
 public class AppConstants {
 
 
@@ -80,7 +56,7 @@ public class AppConstants {
     public static final int WINDOW_WIDTH = 1200;
     public static final int WINDOW_HEIGHT = 820;
     public static final int LOGIN_WIDTH = 460;
-    public static final int LOGIN_HEIGHT = 700;
+    public static final int LOGIN_HEIGHT = 560;
     public static final int NAV_WIDTH = 0; // no sidebar
     public static final int CARD_RADIUS = 14;
     public static final int CARD_PADDING = 20;

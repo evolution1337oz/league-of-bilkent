@@ -1,22 +1,7 @@
 package tools;
-
 import model.*;
-
 import java.awt.Color;
 
-/*
- * ┌──────────────────────────────────────────────────────────────┐
- * │               <<class>> ExperienceSystem                    │
- * │       XP/Tier utility (delegates to AppConstants)           │
- * ├──────────────────────────────────────────────────────────────┤
- * │ + getTierName(xp): String -> delegates to AppConstants      │
- * │ + getTierColor(xp): Color -> delegates to AppConstants      │
- * │ + getTierIndex(xp): int -> delegates to AppConstants        │
- * ├──────────────────────────────────────────────────────────────┤
- * │ USES:    AppConstants                                       │
- * │ NOTE:    Thin wrapper, most code calls AppConstants directly │
- * └──────────────────────────────────────────────────────────────┘
- */
 public class ExperienceSystem {
 
     // Returns the tier name associated with the given XP value

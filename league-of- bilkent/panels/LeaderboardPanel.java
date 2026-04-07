@@ -7,22 +7,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 
-/*
- * ┌──────────────────────────────────────────────────────────────┐
- * │               <<class>> LeaderboardPanel                    │
- * │                   extends JPanel                             │
- * │         XP rankings with tier legend + progress bars        │
- * ├──────────────────────────────────────────────────────────────┤
- * │ - home: HomeScreen                                           │
- * ├──────────────────────────────────────────────────────────────┤
- * │ - buildUI() -> tier legend + ranked user rows               │
- * │ - createRow(rank, user) -> single rank row with XP bar       │
- * ├──────────────────────────────────────────────────────────────┤
- * │ USES:    HomeScreen, Database, UIHelper, AppConstants, User  │
- * │ USED BY: HomeScreen (leaderboard nav link)                  │
- * │ MODIFIED BY: Ege Yiğit Yıldırım                             │
- * └──────────────────────────────────────────────────────────────┘
- */
+
 public class LeaderboardPanel extends JPanel {
 
     private HomeScreen home;
@@ -164,9 +149,7 @@ public class LeaderboardPanel extends JPanel {
 
         // Make row clickable to navigate to user's profile
         row.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        row.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent e) { home.navigateToProfile(u); }
-        });
+        row.addMouseListener(e -> home.navigateToProfile(u));
 
         return row;
     }

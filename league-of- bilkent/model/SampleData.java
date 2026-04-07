@@ -5,19 +5,7 @@ import tools.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 
-/*
- * ┌──────────────────────────────────────────────────────────────┐
- * │                  <<class>> SampleData                        │
- * ├──────────────────────────────────────────────────────────────┤
- * │ + loadSampleData() (static) -> populates DB with demo data  │
- * │   Creates: 7 users (5 students + 2 clubs), 18 events,       │
- * │            follows, attendance, comments, messages, notifs   │
- * ├──────────────────────────────────────────────────────────────┤
- * │ USES:    User, ClubUser, Event, Comment, Database,           │
- * │          AttendanceStatus, PasswordUtil, PosterGenerator      │
- * │ USED BY: MainFile (if database is empty on startup)          │
- * └──────────────────────────────────────────────────────────────┘
- */
+
 public class SampleData {
 
     // Generate unique salts for password hashing
