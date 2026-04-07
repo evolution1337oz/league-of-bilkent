@@ -14,9 +14,6 @@ public class LeaderboardPanel extends JPanel {
 
     /**
      * Constructs the leaderboard panel with the provided home screen reference.
-     * Sets up the layout and builds the UI components for displaying XP rankings.
-     * This panel shows the top 50 players sorted by XP, with tier indicators
-     * and clickable rows for profile navigation.
      *
      * @param home the parent HomeScreen for navigation callbacks
      */
@@ -29,13 +26,7 @@ public class LeaderboardPanel extends JPanel {
 
     /**
      * Builds the main UI for the leaderboard panel.
-     * Creates page title, subtitle, tier legend, separator,
-     * and populates the leaderboard with top 50 users from database.
-     * Each user is displayed as a ranked row with XP progress bar.
-     * 
-     * The leaderboard serves as a central hub for competitive visibility,
-     * showing players their standing and motivating progression through
-     * visual tier indicators and progress bars.
+     * The leaderboard serves as a central hub for competitive visibility.
      */
     private void buildUI() {
         JPanel content = UIHelper.createPagePanel();
@@ -66,7 +57,7 @@ public class LeaderboardPanel extends JPanel {
         content.add(UIHelper.createSeparator());
         content.add(Box.createVerticalStrut(14));
 
-        // Fetch top 50 users from database and render each as a ranked row
+        // fetches data for top 50 users
         ArrayList<User> leaders = Database.getLeaderboard(50);
         int rank = 1;
         for (User u : leaders) {
@@ -79,13 +70,6 @@ public class LeaderboardPanel extends JPanel {
 
     /**
      * Creates a single leaderboard row for a user.
-     * Displays rank badge, user info (name, username, tier, XP),
-     * and a visual progress bar showing progress toward next tier.
-     * Each row is interactive - clicking navigates to the user's profile.
-     * 
-     * The row provides at-a-glance information: position, identity,
-     * current tier status, and visual progress toward the next tier,
-     * encouraging friendly competition among players.
      *
      * @param rank the user's rank position (1-based)
      * @param u    the User object containing player data
@@ -105,7 +89,7 @@ public class LeaderboardPanel extends JPanel {
         row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 56));
         row.setAlignmentX(LEFT_ALIGNMENT);
 
-        // Rank badge: medal emoji for top 3, number for rest
+        // Rank badge
         String rankStr;
         if (rank == 1) {
             rankStr = "\uD83E\uDD47";
@@ -121,7 +105,7 @@ public class LeaderboardPanel extends JPanel {
         rankLbl.setPreferredSize(new Dimension(44, 34));
         row.add(rankLbl, BorderLayout.WEST);
 
-        // User info: display name, username, tier and XP
+        // User info
         JPanel info = new JPanel();
         info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
         info.setOpaque(false);
@@ -137,7 +121,7 @@ public class LeaderboardPanel extends JPanel {
         info.add(tierLbl);
         row.add(info, BorderLayout.CENTER);
 
-        // XP progress bar: custom painted to show progress toward next tier
+        // XP progress bar
         JPanel xpBar = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
