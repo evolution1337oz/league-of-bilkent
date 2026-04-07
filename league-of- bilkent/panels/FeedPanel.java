@@ -170,7 +170,8 @@ public class FeedPanel extends JPanel {
                 empty.setFont(AppConstants.F_NORMAL);
                 empty.setForeground(AppConstants.TEXT_MUTED);
                 gridPanel.add(empty, BorderLayout.CENTER);
-            } else {
+            } 
+            else {
                 gridPanel.setLayout(new GridLayout(0, AppConstants.FEED_COLUMNS, 16, 16));
                 for (Event ev : events) gridPanel.add(createCard(ev));
             }
@@ -189,7 +190,8 @@ public class FeedPanel extends JPanel {
             String firstTag;
             if (ev.getTags().isEmpty()) {
                 firstTag = "";
-            } else {
+            } 
+            else {
                 firstTag = ev.getTags().get(0).toLowerCase();
             }
 
@@ -213,7 +215,8 @@ public class FeedPanel extends JPanel {
                         double scale = Math.max((double)w/img.getWidth(), (double)posterH/img.getHeight());
                         int iw=(int)(img.getWidth()*scale), ih=(int)(img.getHeight()*scale);
                         g2.drawImage(img, (w-iw)/2, (posterH-ih)/2, iw, ih, null);
-                    } else {
+                    } 
+                    else {
                         g2.setColor(bgColor);
                         g2.fillRect(0, 0, w, posterH);
                         // Big emoji
@@ -296,7 +299,8 @@ public class FeedPanel extends JPanel {
                 rsvp.setForeground(Color.WHITE);
                 rsvp.setBackground(AppConstants.TEAL);
                 rsvp.setOpaque(true);
-            } else {
+            } 
+            else {
                 rsvp = new JButton("RSVP");
                 rsvp.setForeground(AppConstants.TEAL);
                 rsvp.setBackground(Color.WHITE);
