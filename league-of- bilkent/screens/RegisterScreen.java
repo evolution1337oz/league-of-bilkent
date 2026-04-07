@@ -65,7 +65,7 @@ public class RegisterScreen extends JPanel {
         String password = new String(passwordField.getPassword());
         boolean isClub = clubCheckBox.isSelected();
 
-        // VALIDATION
+        // Validations
         if (username.isEmpty() || email.isEmpty() || password.isEmpty()) {
             UIHelper.showError(this, "Please fill in all required fields!"); return;
         }
@@ -86,7 +86,7 @@ public class RegisterScreen extends JPanel {
         }
         if (displayName.isEmpty()) displayName = username;
 
-        // SEND VERIFICATION EMAIL
+        // Send verifidaciton email
         verificationCode = EmailSender.generateCode();
         boolean emailSent = false;
         try {
