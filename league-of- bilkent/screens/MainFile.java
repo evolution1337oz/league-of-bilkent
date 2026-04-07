@@ -4,13 +4,10 @@ import model.*;
 import tools.*;
 import javax.swing.*;
 
-// main entry point
-// connects to database and shows home screen
-// handles network discovery for connecting to host
 public class MainFile {
 
-    // TODO add currentUser field when User class is ready
-    // TODO add login screen
+    public static User currentUser;
+    public static LoginScreen loginScreen;
 
     public static void main(String[] args) {
         try {
@@ -18,7 +15,10 @@ public class MainFile {
         } catch (Exception e) {
         }
 
+        NetworkManager.isClientMode = true;
+
         if (NetworkManager.isClientMode) {
+            // wait a bit for discovery to find hosts before connecting
             NetworkManager.startDiscovery();
             try {
                 Thread.sleep(2500);
@@ -34,8 +34,12 @@ public class MainFile {
         }
 
         Database.createConnection();
+        // load sample data if we are running for the first time
+        if (Database.isDatabaseEmpty() && Database.customDbUrl == null) {
+            SampleData.loadSampleData();
+        }
 
-        // when a new host is found update database url
+        // this runs when a new host is found on the network
         NetworkManager.onHostFound = new Runnable() {
             @Override
             public void run() {
@@ -44,6 +48,9 @@ public class MainFile {
                     String dbPort = "3306";
                     Database.customDbUrl = "jdbc:mysql://" + hostIp + ":" + dbPort + "/league_of_bilkent?createDatabaseIfNotExist=true";
                     Database.createConnection();
+                    if (loginScreen != null) {
+                        loginScreen.refreshUsers();
+                    }
                 }
             }
         };
@@ -51,8 +58,9 @@ public class MainFile {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                HomeScreen home = new HomeScreen();
-                home.setVisible(true);
+                loginScreen = new LoginScreen();
+                loginScreen.setVisible(true);
+                loginScreen.refreshUsers();
             }
         });
     }

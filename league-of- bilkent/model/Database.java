@@ -1,5 +1,6 @@
 package model;
 
+import tools.*;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -7,23 +8,28 @@ import java.util.HashMap;
 /*
  *   Database
  * 
- *   mysql database
- *   createConnection  createTables
+ *   mysql database stuff
+ *   createConnection connects and createTables builds schema
  * 
- *   test:       testInsertUser testInsertEvent printAllUsers printAllEvents
- *   interests:  addUserInterest getUserInterests addEventTag getEventTags
- *   attendance: insertAttendance removeAttendance getAttendance
- *   comments:   insertComment printComments
- *   follows:    insertFollow deleteFollow getFollowers getFollowing
- *   notif:      insertNotification getNotifications
+ *   add:        addToDatabase (User Event Comment)
+ *   delete:     deleteFromDatabase (User Event)
+ * 
+ *   attendance: setAttendance removeAttendance getAttendanceMap
+ *   follows:    addFollow deleteFollow getFollowers getFollowing
+ * 
+ *   tags:       addEventTag getEventTags addInterest getInterests setInterests
+ *   notif:      addNotification getNotifications
  *   messages:   sendMessage getMessages getConversationPartners
- *   xp:         getUserXP addXP
- *   queries:    isDatabaseEmpty isEmailTaken getLeaderboard
- *               getPopularEventIds getRecommendedEventIds getDbStateHash
- *   updates:    updateUserBio updateUserVerified updateUserPassword
+ * 
+ *   queries:    getAllUsers getUserWithUsername getAllEvents
+ *               getLeaderboard getUserXP addXP
+ *               getPopularEventIds getRecommendedEventIds
+ *               isEmailTaken isDatabaseEmpty
+ * 
+ *   updates:    updateUserVerified updateUserPassword updateUserBio
  *               updateEventImage
  * 
- *   TODO refactor with model classes when ready
+ *  used by pretty much everything
  */
 public class Database {
 
@@ -31,34 +37,34 @@ public class Database {
 
     public static String customDbUrl = null;
 
-    // ----------------------------connection----------------------------
-
-    // connects to mysql database
     public static void createConnection() {
         try {
             // Load mysql driver
             Class.forName("com.mysql.cj.jdbc.Driver");
 
-            String dbUrl = "jdbc:mysql://localhost:3306/league_of_bilkent?createDatabaseIfNotExist=true";
-            String dbUser = "root";
-            String dbPass = "1234";
+            String dbUrl = AppConstants.DB_URL;
+            String dbUser = AppConstants.DB_USER;
+            String dbPass = AppConstants.DB_PASS;
 
-            // if we are connecting to another host use their url
             if (customDbUrl != null) {
                 dbUrl = customDbUrl;
             }
 
-            // try to read credentials from file
             try {
-                java.util.Properties props = new java.util.Properties();
-                props.load(new java.io.FileInputStream("credentials.properties"));
-                if (props.getProperty("password") != null) {
-                    dbPass = props.getProperty("password");
-                }
+
+                // get database credentials from properties file
+                java.util.Properties creds = new java.util.Properties();
+                creds.load(new java.io.FileInputStream("credentials.properties"));
+
+                // if we are connected to an non local host dbUrl is hosts ip
+                dbUrl = creds.getProperty("db.url", dbUrl);
+                dbUser = creds.getProperty("db.user", dbUser);
+                dbPass = creds.getProperty("db.password", dbPass);
+
             } catch (Exception e) {
-                // no credentials file, use defaults
             }
 
+            // this connects to the actual database
             databaseConnection = DriverManager.getConnection(dbUrl, dbUser, dbPass);
             createTables();
         } catch (Exception e) {
@@ -66,13 +72,13 @@ public class Database {
         }
     }
 
-    // ----------------------------tables----------------------------
-
     private static void createTables() {
         try (Statement dbST = databaseConnection.createStatement()) {
 
-            // users
-            dbST.executeUpdate("CREATE TABLE IF NOT EXISTS users " +
+            // user data
+            // (username, display_name, email, password, salt, bio, is_club, verified, xp,
+            // tier)
+            dbST.executeUpdate("CREATE TABLE IF NOT EXISTS users" +
                     "(username VARCHAR(50) PRIMARY KEY, " +
                     "display_name VARCHAR(100), " +
                     "email VARCHAR(100), " +
@@ -81,9 +87,19 @@ public class Database {
                     "bio TEXT, " +
                     "is_club TINYINT DEFAULT 0, " +
                     "verified TINYINT DEFAULT 0, " +
-                    "xp INT DEFAULT 0)");
+                    "xp INT DEFAULT 0, " +
+                    "tier INT DEFAULT 0)");
+
+            // user interests (username, interest)
+            dbST.executeUpdate("CREATE TABLE IF NOT EXISTS user_interests " +
+                    "(username VARCHAR(50), " +
+                    "interest VARCHAR(55), " +
+                    "PRIMARY KEY (username, interest))");
 
             // events
+            // (event_id, title, description, location, date_time, end_date_time,
+            // registration_deadline, capacity, creator_username, image_path, xp_reward,
+            // min_tier)
             dbST.executeUpdate("CREATE TABLE IF NOT EXISTS events " +
                     "(event_id INT AUTO_INCREMENT PRIMARY KEY, " +
                     "title VARCHAR(200), " +
@@ -94,275 +110,333 @@ public class Database {
                     "registration_deadline VARCHAR(50), " +
                     "capacity INT, " +
                     "creator_username VARCHAR(50), " +
-                    "image_path VARCHAR(500), " +
-                    "xp_reward INT DEFAULT 10, " +
+                    "image_path VARCHAR(500) DEFAULT '', " +
+                    "xp_reward INT DEFAULT 5, " +
                     "min_tier INT DEFAULT 0)");
 
-            // user interests (username, interest)
-            dbST.executeUpdate("CREATE TABLE IF NOT EXISTS user_interests " +
-                    "(username VARCHAR(50), " +
-                    "interest VARCHAR(55), " +
-                    "PRIMARY KEY (username, interest))");
-
-            // event tags (event_id, tag)
+            // event tags
+            // (event_id, tag)
             dbST.executeUpdate("CREATE TABLE IF NOT EXISTS event_tags " +
                     "(event_id INT, " +
                     "tag VARCHAR(50), " +
                     "PRIMARY KEY (event_id, tag))");
 
-            // attendance (event_id, username, status)
+            // attendance
+            // (event_id, username, status)
             dbST.executeUpdate("CREATE TABLE IF NOT EXISTS attendance " +
                     "(event_id INT, " +
                     "username VARCHAR(50), " +
-                    "status VARCHAR(20), " +
+                    "status VARCHAR(20) DEFAULT 'GOING', " +
                     "PRIMARY KEY (event_id, username))");
 
-            // comments (comment_id, event_id, username, text, timestamp, parent_id)
+            // comments
+            // (comment_id, event_id, username, text, time, parent_comment_id)
             dbST.executeUpdate("CREATE TABLE IF NOT EXISTS comments " +
                     "(comment_id INT AUTO_INCREMENT PRIMARY KEY, " +
                     "event_id INT, " +
                     "username VARCHAR(50), " +
                     "text TEXT, " +
-                    "timestamp VARCHAR(50), " +
-                    "parent_id INT DEFAULT 0)");
+                    "time VARCHAR(20), " +
+                    "parent_comment_id INT DEFAULT 0)");
 
-            // follows (follower_username, following_username)
+            // follows
+            // (follower_username, following_username)
             dbST.executeUpdate("CREATE TABLE IF NOT EXISTS follows " +
                     "(follower_username VARCHAR(50), " +
                     "following_username VARCHAR(50), " +
                     "PRIMARY KEY (follower_username, following_username))");
 
-            // notifications (id, username, message, timestamp)
+            // notifications
+            // (notif_id, username, message)
             dbST.executeUpdate("CREATE TABLE IF NOT EXISTS notifications " +
-                    "(id INT AUTO_INCREMENT PRIMARY KEY, " +
+                    "(notif_id INT AUTO_INCREMENT PRIMARY KEY, " +
                     "username VARCHAR(50), " +
-                    "message TEXT, " +
-                    "timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+                    "message TEXT)");
 
-            // messages (id, sender, receiver, text, timestamp, read_at)
+            // messages
+            // (msg_id, sender, receiver, text, time, is_read)
             dbST.executeUpdate("CREATE TABLE IF NOT EXISTS messages " +
-                    "(id INT AUTO_INCREMENT PRIMARY KEY, " +
-                    "sender_username VARCHAR(50), " +
-                    "receiver_username VARCHAR(50), " +
+                    "(msg_id INT AUTO_INCREMENT PRIMARY KEY, " +
+                    "sender VARCHAR(50), " +
+                    "receiver VARCHAR(50), " +
                     "text TEXT, " +
-                    "timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
-                    "read_at TIMESTAMP NULL)");
+                    "time VARCHAR(30), " +
+                    "is_read TINYINT DEFAULT 0)");
 
+            // user tag filters
+            // (username, tag)
+            dbST.executeUpdate("CREATE TABLE IF NOT EXISTS user_tag_filters " +
+                    "(username VARCHAR(50), " +
+                    "tag VARCHAR(50), " +
+                    "PRIMARY KEY (username, tag))");
+
+            // migration to new version is complete
+            // i left ts if i need to remember how to add new things again
+            /*
+             * // migratre old data to new tables
+             * migrateAttendeesTable(dbStatement);
+             * addColumnIfNotExists(dbStatement, "users", "salt", "VARCHAR(64) DEFAULT ''");
+             * // for password
+             * addColumnIfNotExists(dbStatement, "users", "xp", "INT DEFAULT 0"); // for
+             * user xp
+             * addColumnIfNotExists(dbStatement, "events", "end_date_time", "VARCHAR(50)");
+             * // for event end time
+             * addColumnIfNotExists(dbStatement, "events", "registration_deadline",
+             * "VARCHAR(50)"); // for event
+             * // registration
+             * // deadline
+             * addColumnIfNotExists(dbStatement, "events", "image_path",
+             * "VARCHAR(500) DEFAULT ''"); // for event image
+             * addColumnIfNotExists(dbStatement, "events", "xp_reward", "INT DEFAULT 5"); //
+             * for event xp reward
+             * addColumnIfNotExists(dbStatement, "events", "min_tier", "INT DEFAULT 0"); //
+             * for event min tier
+             * 
+             * addColumnIfNotExists(dbStatement, "comments", "parent_comment_id",
+             * "INT DEFAULT 0"); // for comment parent
+             */
         } catch (Exception e) {
-            System.out.println("table creation error: " + e.getMessage());
+            System.out.println("creation fail: " + e.getMessage());
         }
     }
 
-    // helper for running a single column query and returning list
-    private static ArrayList<String> qList(String sql, String column, String... params) {
-        ArrayList<String> list = new ArrayList<>();
-        try {
-            PreparedStatement ps = databaseConnection.prepareStatement(sql);
-            for (int i = 0; i < params.length; i++) {
-                ps.setString(i + 1, params[i]);
-            }
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                list.add(rs.getString(column));
-            }
-        } catch (Exception e) {
-        }
-        return list;
-    }
+    // helper methods for migration of new things to database
+    /*
+     * private static void migrateAttendeesTable(Statement dbStatement) {
+     * try {
+     * ResultSet rs = databaseConnection.getMetaData().getTables(null, null,
+     * "attendees", null);
+     * if (rs.next()) {
+     * dbStatement.
+     * executeUpdate("INSERT IGNORE INTO attendance (event_id, username, status) " +
+     * "SELECT event_id, username, 'GOING' FROM attendees");
+     * }
+     * } catch (Exception e) {
+     * }
+     * }
+     * 
+     * private static void addColumnIfNotExists(Statement dbStatement, String table,
+     * String col, String def) {
+     * try {
+     * ResultSet rs = databaseConnection.getMetaData().getColumns(null, null, table,
+     * col);
+     * if (!rs.next()) {
+     * st.executeUpdate("ALTER TABLE " + table + " ADD COLUMN " + col + " "
+     * + def);
+     * }
+     * } catch (Exception e) {
+     * }
+     * }
+     */
 
-    // helper for running delete with prepared statement
-    private static void executeDelete(String sql, String... params) {
-        try {
-            PreparedStatement ps = databaseConnection.prepareStatement(sql);
-            for (int i = 0; i < params.length; i++) {
-                ps.setString(i + 1, params[i]);
-            }
-            ps.executeUpdate();
-        } catch (Exception e) {
-        }
-    }
+    // ---------------------------- add----------------------------
 
-    // ----------------------------test methods----------------------------
-
-    // inserts a user directly for testing
-    public static void testInsertUser(String username, String displayName, String email, String password) {
+    // user
+    public static void addToDatabase(User _user) {
         try {
             PreparedStatement ps = databaseConnection.prepareStatement(
-                    "INSERT IGNORE INTO users (username,display_name,email,password) VALUES(?,?,?,?)");
-            ps.setString(1, username);
-            ps.setString(2, displayName);
-            ps.setString(3, email);
-            ps.setString(4, password);
+                    "INSERT IGNORE INTO users (username,display_name,email,password,salt,bio,is_club,verified) VALUES(?,?,?,?,?,?,?,?)");
+            ps.setString(1, _user.getUsername());
+            ps.setString(2, _user.getDisplayName());
+            ps.setString(3, _user.getEmail());
+            ps.setString(4, _user.getPassword());
+            ps.setString(5, _user.getSalt());
+            ps.setString(6, _user.getBio());
+            int clubVal = 0;
+            if (_user.isClub()) {
+                clubVal = 1;
+            }
+            ps.setInt(7, clubVal);
+            int verifiedVal = 0;
+            if (_user.isVerified()) {
+                verifiedVal = 1;
+            }
+            ps.setInt(8, verifiedVal);
             ps.executeUpdate();
+            for (String interest : _user.getInterests()) {
+                addInterest(_user.getUsername(), interest);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    // inserts an event directly for testing
-    public static int testInsertEvent(String title, String desc, String location,
-            String dateTime, int capacity, String creator) {
+    // Event
+    public static int addToDatabase(Event _event) {
         int generatedID = -1;
         try {
             PreparedStatement ps = databaseConnection.prepareStatement(
-                    "INSERT INTO events (title,description,location,date_time,capacity,creator_username) VALUES(?,?,?,?,?,?)",
+                    "INSERT INTO events (title,description,location,date_time,end_date_time," +
+                            "registration_deadline,capacity,creator_username,image_path,xp_reward,min_tier) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                     Statement.RETURN_GENERATED_KEYS);
-            ps.setString(1, title);
-            ps.setString(2, desc);
-            ps.setString(3, location);
-            ps.setString(4, dateTime);
-            ps.setInt(5, capacity);
-            ps.setString(6, creator);
+            ps.setString(1, _event.getTitle());
+            ps.setString(2, _event.getDescription());
+            ps.setString(3, _event.getLocation());
+            ps.setString(4, _event.getDateTime().toString());
+            String endDateTimeValue = null;
+            if (_event.getEndDateTime() != null) {
+                endDateTimeValue = _event.getEndDateTime().toString();
+            }
+            ps.setString(5, endDateTimeValue);
+            String deadlineValue = null;
+            if (_event.getRegistrationDeadline() != null) {
+                deadlineValue = _event.getRegistrationDeadline().toString();
+            }
+            ps.setString(6, deadlineValue);
+            ps.setInt(7, _event.getCapacity());
+            ps.setString(8, _event.getCreatorUsername());
+            ps.setString(9, _event.getImagePath());
+            ps.setInt(10, _event.getXpReward());
+            ps.setInt(11, _event.getMinTierIndex());
+            ps.executeUpdate();
+            // we need the generated id to add tags to the event
+            ResultSet rs = ps.getGeneratedKeys();
+            if (rs.next()) {
+                generatedID = rs.getInt(1);
+            }
+            for (String tag : _event.getTags()) {
+                addEventTag(generatedID, tag);
+            }
+        } catch (Exception e) {
+        }
+        return generatedID;
+    }
+
+    // comment
+    public static int addToDatabase(Comment _comment, int _eventID) {
+        int generatedID = -1;
+        try {
+            PreparedStatement ps = databaseConnection.prepareStatement(
+                    "INSERT INTO comments (event_id, username, text, time, parent_comment_id) VALUES(?,?,?,?,?)",
+                    Statement.RETURN_GENERATED_KEYS);
+            ps.setInt(1, _eventID);
+            ps.setString(2, _comment.getUsername());
+            ps.setString(3, _comment.getText());
+            ps.setString(4, _comment.getTime());
+            ps.setInt(5, _comment.getParentId());
             ps.executeUpdate();
             ResultSet rs = ps.getGeneratedKeys();
             if (rs.next()) {
                 generatedID = rs.getInt(1);
             }
         } catch (Exception e) {
-            e.printStackTrace();
         }
         return generatedID;
     }
 
-    // ----------------------------interests/tags----------------------------
+    // ----------------------------delete----------------------------
 
-    public static void addUserInterest(String username, String interest) {
+    // user
+    public static void deleteFromDatabase(User _user) {
         try {
-            databaseConnection.createStatement()
-                    .executeUpdate("INSERT IGNORE INTO user_interests VALUES('" + username + "','" + interest + "')");
+            String uname = _user.getUsername();
+            executeDelete("DELETE FROM user_interests WHERE username=?", uname);
+            executeDelete("DELETE FROM follows WHERE follower_username=? OR following_username=?", uname,
+                    uname);
+            executeDelete("DELETE FROM notifications WHERE username=?", _user.getUsername());
+            executeDelete("DELETE FROM attendance WHERE username=?", uname);
+            executeDelete("DELETE FROM users WHERE username=?", _user.getUsername());
         } catch (Exception e) {
         }
     }
 
-    public static void addEventTag(int eventId, String tag) {
+    // event
+    public static void deleteFromDatabase(Event _event) {
         try {
-            databaseConnection.createStatement()
-                    .executeUpdate("INSERT IGNORE INTO event_tags VALUES(" + eventId + ",'" + tag + "')");
+            executeDelete("DELETE FROM comments WHERE event_id=?", _event.getId());
+            executeDelete("DELETE FROM attendance WHERE event_id=?", _event.getId());
+            executeDelete("DELETE FROM event_tags WHERE event_id=?", _event.getId());
+            executeDelete("DELETE FROM events WHERE event_id=?", _event.getId());
         } catch (Exception e) {
         }
     }
 
-    public static ArrayList<String> getUserInterests(String username) {
-        return qList("SELECT interest FROM user_interests WHERE username=?", "interest", username);
-    }
-
-    public static ArrayList<String> getEventTags(int eventId) {
-        ArrayList<String> list = new ArrayList<>();
+    // delete helper
+    private static void executeDelete(String sql, Object... args) {
         try {
-            PreparedStatement ps = databaseConnection.prepareStatement(
-                    "SELECT tag FROM event_tags WHERE event_id=?");
-            ps.setInt(1, eventId);
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                list.add(rs.getString("tag"));
+            PreparedStatement ps = databaseConnection.prepareStatement(sql);
+
+            for (int i = 0; i < args.length; i++) {
+
+                if (args[i] instanceof Integer) {
+                    ps.setInt(i + 1, (Integer) args[i]);
+                } else {
+                    ps.setString(i + 1, args[i].toString());
+                }
             }
-        } catch (Exception e) {
-        }
-        return list;
-    }
-
-    // clears and re-inserts interests for a user
-    public static void setInterests(String username, ArrayList<String> interests) {
-        try {
-            executeDelete("DELETE FROM user_interests WHERE username=?", username);
-            for (String interest : interests) {
-                addUserInterest(username, interest);
-            }
+            ps.executeUpdate();
         } catch (Exception e) {
         }
     }
 
     // ----------------------------attendance----------------------------
 
-    public static void insertAttendance(int eventId, String username, String status) {
+    // on duplicate key update is needed because user might change their status
+    public static void setAttendance(int _eventID, String _username, AttendanceStatus _status) {
         try {
             PreparedStatement ps = databaseConnection.prepareStatement(
-                    "INSERT INTO attendance (event_id,username,status) VALUES(?,?,?) " +
-                            "ON DUPLICATE KEY UPDATE status=?");
-            ps.setInt(1, eventId);
-            ps.setString(2, username);
-            ps.setString(3, status);
-            ps.setString(4, status);
+                    "INSERT INTO attendance (event_id,username,status) VALUES(?,?,?) ON DUPLICATE KEY UPDATE status=?");
+            ps.setInt(1, _eventID);
+            ps.setString(2, _username);
+            ps.setString(3, _status.name());
+            ps.setString(4, _status.name());
             ps.executeUpdate();
         } catch (Exception e) {
         }
     }
 
-    public static void removeAttendance(int eventId, String username) {
+    // remove attendance
+    public static void removeAttendance(int _eventID, String _username) {
         try {
-            PreparedStatement ps = databaseConnection.prepareStatement(
-                    "DELETE FROM attendance WHERE event_id=? AND username=?");
-            ps.setInt(1, eventId);
-            ps.setString(2, username);
-            ps.executeUpdate();
+            executeDelete("DELETE FROM attendance WHERE event_id=? AND username=?", _eventID, _username);
         } catch (Exception e) {
         }
     }
 
-    // returns username -> status map
-    public static HashMap<String, String> getAttendance(int eventId) {
-        HashMap<String, String> map = new HashMap<>();
+    public static ArrayList<String> getAttendees(int _eventID) {
+        return new ArrayList<>(getAttendanceMap(_eventID).keySet());
+    }
+
+    // get attendance data
+    public static HashMap<String, AttendanceStatus> getAttendanceMap(int _eventID) {
+        HashMap<String, AttendanceStatus> attendanceMap = new HashMap<>();
         try {
             ResultSet rs = databaseConnection.createStatement()
-                    .executeQuery("SELECT username,status FROM attendance WHERE event_id=" + eventId);
+                    .executeQuery("SELECT username,status FROM attendance WHERE event_id=" + _eventID);
             while (rs.next()) {
-                map.put(rs.getString("username"), rs.getString("status"));
+                AttendanceStatus status = AttendanceStatus.fromString(rs.getString("status"));
+                if (status != null) {
+                    attendanceMap.put(rs.getString("username"), status);
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return map;
+        return attendanceMap;
     }
 
-    // ----------------------------comments----------------------------
-
-    public static int insertComment(int eventId, String username, String text, String time) {
-        int generatedID = -1;
-        try {
-            PreparedStatement ps = databaseConnection.prepareStatement(
-                    "INSERT INTO comments (event_id,username,text,timestamp) VALUES(?,?,?,?)",
-                    Statement.RETURN_GENERATED_KEYS);
-            ps.setInt(1, eventId);
-            ps.setString(2, username);
-            ps.setString(3, text);
-            ps.setString(4, time);
-            ps.executeUpdate();
-            ResultSet rs = ps.getGeneratedKeys();
-            if (rs.next()) {
-                generatedID = rs.getInt(1);
-            }
-        } catch (Exception e) {
-        }
-        return generatedID;
+    public static void addAttendee(int _eventID, String _username) {
+        setAttendance(_eventID, _username, AttendanceStatus.GOING);
     }
 
-    // prints comments for an event
-    public static void printComments(int eventId) {
-        try {
-            ResultSet rs = databaseConnection.createStatement()
-                    .executeQuery("SELECT * FROM comments WHERE event_id=" + eventId + " ORDER BY comment_id");
-            while (rs.next()) {
-                System.out.println("  " + rs.getString("username") + ": " + rs.getString("text"));
-            }
-        } catch (Exception e) {
-        }
+    public static void deleteAttendee(int _eventID, String _username) {
+        removeAttendance(_eventID, _username);
     }
 
     // ----------------------------follows----------------------------
 
-    public static void deleteFollow(String follower, String following) {
+    public static void deleteFollow(String _follower, String _following) {
         try {
-            executeDelete("DELETE FROM follows WHERE follower_username=? AND following_username=?", follower,
-                    following);
+            executeDelete("DELETE FROM follows WHERE follower_username=? AND following_username=?", _follower,
+                    _following);
         } catch (Exception e) {
         }
     }
 
-    public static void insertFollow(String follower, String following) {
+    public static void addFollow(String _follower, String _following) {
         try {
             databaseConnection.createStatement()
-                    .executeUpdate(
-                            "INSERT IGNORE INTO follows VALUES('" + follower + "','" + following + "')");
+                    .executeUpdate("INSERT IGNORE INTO follows VALUES('" + _follower + "','" + _following + "')");
         } catch (Exception e) {
         }
     }
@@ -372,118 +446,397 @@ public class Database {
     }
 
     public static ArrayList<String> getFollowing(String username) {
-        return qList("SELECT following_username FROM follows WHERE follower_username=?", "following_username", username);
+        return qList("SELECT following_username FROM follows WHERE follower_username=?", "following_username",
+                username);
+    }
+
+    // ----------------------------tags----------------------------
+
+    public static void addEventTag(int _eventID, String _tag) {
+        try {
+            databaseConnection.createStatement()
+                    .executeUpdate("INSERT IGNORE INTO event_tags VALUES(" + _eventID + ",'" + _tag + "')");
+        } catch (Exception e) {
+        }
+    }
+
+    public static ArrayList<String> getEventTags(int eventID) {
+        return qList("SELECT tag FROM event_tags WHERE event_id=?", "tag", eventID);
+    }
+
+    public static void addInterest(String _username, String _interest) {
+        try {
+            databaseConnection.createStatement()
+                    .executeUpdate("INSERT IGNORE INTO user_interests VALUES('" + _username + "','" + _interest + "')");
+        } catch (Exception e) {
+        }
+    }
+
+    // v---------------------------- interesets----------------------------
+
+    public static void removeInterest(String _username, String _interest) {
+        try {
+            executeDelete("DELETE FROM user_interests WHERE username=? AND interest=?", _username, _interest);
+        } catch (Exception e) {
+        }
+    }
+
+    public static ArrayList<String> getInterests(String username) {
+        return qList("SELECT interest FROM user_interests WHERE username=?", "interest", username);
+    }
+
+    public static void setInterests(String _username, ArrayList<String> _list) {
+        try {
+            executeDelete("DELETE FROM user_interests WHERE username=?", _username);
+            for (String interest : _list) {
+                addInterest(_username, interest);
+            }
+        } catch (Exception e) {
+        }
     }
 
     // ----------------------------notifications----------------------------
-
-    public static void insertNotification(String username, String message) {
+    public static void addNotification(String _username, String _message) {
         try {
-            PreparedStatement ps = databaseConnection.prepareStatement(
-                    "INSERT INTO notifications (username,message) VALUES(?,?)");
-            ps.setString(1, username);
-            ps.setString(2, message);
-            ps.executeUpdate();
+            databaseConnection.createStatement()
+                    .executeUpdate("INSERT INTO notifications (username,message) VALUES('" + _username + "','"
+                            + _message + "')");
         } catch (Exception e) {
         }
     }
 
     public static ArrayList<String> getNotifications(String username) {
-        return qList("SELECT message FROM notifications WHERE username=? ORDER BY timestamp DESC", "message", username);
+        return qList("SELECT message FROM notifications WHERE username=? ORDER BY notif_id ASC", "message", username);
     }
 
-    // ----------------------------messages----------------------------
+    // ---------------------------- messages----------------------------
 
-    // sends a message from sender to receiver
-    public static void sendMessage(String sender, String receiver, String text) {
+    public static void sendMessage(String _sender, String _receiver, String _text) {
         try {
             PreparedStatement ps = databaseConnection.prepareStatement(
-                    "INSERT INTO messages (sender_username,receiver_username,text) VALUES(?,?,?)");
-            ps.setString(1, sender);
-            ps.setString(2, receiver);
-            ps.setString(3, text);
+                    "INSERT INTO messages (sender,receiver,text,time) VALUES(?,?,?,?)");
+            ps.setString(1, _sender);
+            ps.setString(2, _receiver);
+            ps.setString(3, _text);
+            ps.setString(4,
+                    java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM HH:mm")));
             ps.executeUpdate();
         } catch (Exception e) {
+            System.out.println(e);
         }
     }
 
-    // gets messages between two users
-    public static ArrayList<String> getMessages(String user1, String user2) {
-        ArrayList<String> list = new ArrayList<>();
+    public static ArrayList<String[]> getMessages(String _user1, String _user2) {
+        ArrayList<String[]> msgList = new ArrayList<>();
         try {
             PreparedStatement ps = databaseConnection.prepareStatement(
-                    "SELECT sender_username,text,timestamp FROM messages " +
-                            "WHERE (sender_username=? AND receiver_username=?) " +
-                            "OR (sender_username=? AND receiver_username=?) " +
-                            "ORDER BY timestamp ASC");
-            ps.setString(1, user1);
-            ps.setString(2, user2);
-            ps.setString(3, user2);
-            ps.setString(4, user1);
+                    "SELECT sender,text,time FROM messages WHERE (sender=? AND receiver=?) OR (sender=? AND receiver=?) ORDER BY msg_id ASC");
+            ps.setString(1, _user1);
+            ps.setString(2, _user2);
+            ps.setString(3, _user2);
+            ps.setString(4, _user1);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
-                list.add(rs.getString("sender_username") + ": " + rs.getString("text"));
+                msgList.add(new String[] { rs.getString("sender"), rs.getString("text"), rs.getString("time") });
             }
         } catch (Exception e) {
         }
-        return list;
+        if (msgList == null) {
+            msgList = new ArrayList<>();
+        }
+        return msgList;
     }
 
-    // gets list of users this user has messaged with
+    // this query gets unique partners i used CASE to get the other persons
+    // username
     public static ArrayList<String> getConversationPartners(String username) {
-        ArrayList<String> partners = new ArrayList<>();
+        ArrayList<String> partnerList = new ArrayList<>();
+        try {
+            ResultSet rs = databaseConnection.createStatement().executeQuery(
+                    "SELECT CASE WHEN sender='" + username
+                            + "' THEN receiver ELSE sender END as partner FROM messages WHERE sender='" + username
+                            + "' OR receiver='" + username + "' ORDER BY msg_id DESC");
+            while (rs.next()) {
+                String partnerUsername = rs.getString("partner");
+                if (!partnerList.contains(partnerUsername)) {
+                    partnerList.add(partnerUsername);
+                }
+            }
+        } catch (Exception e) {
+        }
+        return partnerList;
+    }
+
+    // ----------------------------tag filters----------------------------
+
+    public static void setUserTagFilters(String _username, ArrayList<String> _tags) {
+        try {
+            executeDelete("DELETE FROM user_tag_filters WHERE username=?", _username);
+            for (String tag : _tags) {
+                databaseConnection.createStatement()
+                        .executeUpdate("INSERT IGNORE INTO user_tag_filters VALUES('" + _username + "','" + tag + "')");
+            }
+        } catch (Exception e) {
+        }
+    }
+
+    public static ArrayList<String> getUserTagFilters(String username) {
+        return qList("SELECT tag FROM user_tag_filters WHERE username=?", "tag", username);
+    }
+
+    // ----------------------------user queries----------------------------
+
+    public static ArrayList<User> getAllUsers() {
+        ArrayList<User> allUsers = new ArrayList<>();
+        try {
+            ResultSet rs = databaseConnection.prepareStatement("SELECT * FROM users").executeQuery();
+            while (rs.next()) {
+                allUsers.add(buildUser(rs));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return allUsers;
+    }
+
+    public static User getUserWithUsername(String username) {
+        try {
+            ResultSet rs = databaseConnection.createStatement()
+                    .executeQuery("SELECT * FROM users WHERE username='" + username + "'");
+            if (rs.next()) {
+                return buildUser(rs);
+            }
+        } catch (Exception e) {
+        }
+        return null;
+    }
+
+    private static User buildUser(ResultSet rs) {
+        try {
+            String username = rs.getString("username");
+            boolean isClub = rs.getInt(7) == 1;
+            String salt = rs.getString("salt");
+            if (salt == null) {
+                salt = "";
+            }
+            User user;
+            if (isClub) {
+                user = new ClubUser(username, rs.getString("display_name"), rs.getString("email"),
+                        rs.getString("password"), salt, rs.getString("bio"));
+            } else {
+                user = new User(username, rs.getString("display_name"), rs.getString("email"), rs.getString("password"),
+                        salt, rs.getString("bio"));
+            }
+            user.setVerified(rs.getInt("verified") == 1);
+            try {
+                user.setXp(rs.getInt("xp"));
+            } catch (Exception e) {
+            }
+            user.setInterests(getInterests(username));
+            user.setFollowing(getFollowing(username));
+            user.setFollowers(getFollowers(username));
+            user.setNotifications(getNotifications(username));
+            return user;
+        } catch (Exception e2) {
+            System.out.println(e2);
+            return null;
+        }
+    }
+
+    public static void updateUserVerified(String _username, boolean _isVerified) {
+        try {
+            int verifiedVal = 0;
+            if (_isVerified) {
+                verifiedVal = 1;
+            }
+            databaseConnection.createStatement()
+                    .executeUpdate("UPDATE users SET verified=" + verifiedVal + " WHERE username='" + _username + "'");
+        } catch (Exception e) {
+        }
+    }
+
+    public static void updateUserPassword(String _username, String _hash, String _salt) {
+        try {
+            databaseConnection.createStatement()
+                    .executeUpdate("UPDATE users SET password='" + _hash + "',salt='" + _salt + "' WHERE username='"
+                            + _username + "'");
+        } catch (Exception e) {
+        }
+    }
+
+    public static void updateUserBio(String _username, String _bio) {
+        try {
+            databaseConnection.createStatement()
+                    .executeUpdate("UPDATE users SET bio='" + _bio + "' WHERE username='" + _username + "'");
+        } catch (Exception e) {
+        }
+    }
+
+    // ----------------------------event Qeries ----------------------------
+
+    public static ArrayList<Event> getAllEvents() {
+        ArrayList<Event> allEvents = new ArrayList<>();
+        try {
+            ResultSet rs = databaseConnection.prepareStatement("SELECT * FROM events ORDER BY event_id DESC")
+                    .executeQuery();
+            while (rs.next()) {
+                allEvents.add(buildEvent(rs));
+            }
+        } catch (Exception e) {
+        }
+        return allEvents;
+    }
+
+    // get events that a specific user created
+    // tried to add date filter but it broke something
+    public static ArrayList<Event> getEventsCreatedBy(String username) {
+        ArrayList<Event> result = new ArrayList<Event>();
+        ArrayList<Event> all = getAllEvents();
+        for (int i = 0; i < all.size(); i++) {
+            Event ev = all.get(i);
+            if (ev.getCreatorUsername().equals(username)) {
+                result.add(ev);
+            }
+        }
+        /* tried to filter old events but getting error with the date comparison
+        for (int j = result.size() - 1; j >= 0; j--) {
+            String dt = result.get(j).getDateTime().toString()
+            if (dt.compareTo(java.time.LocalDateTime.now().toString()) < 0) {
+                result.remove(j);
+            }
+        }
+        */
+        return result;
+    }
+
+    private static Event buildEvent(ResultSet rs) {
+        try {
+            int eventID = rs.getInt("event_id");
+            String eventCreator = rs.getString("creator_username");
+
+            java.time.LocalDateTime dateTime = java.time.LocalDateTime.parse(rs.getString("date_time"));
+            java.time.LocalDateTime endDateTime = parseOptDT(rs.getString("end_date_time"));
+            java.time.LocalDateTime deadline = parseOptDT(rs.getString("registration_deadline"));
+
+            Event event = new Event(eventID, rs.getString("title"), rs.getString("description"),
+                    rs.getString("location"), dateTime, endDateTime, deadline, rs.getInt("capacity"),
+                    rs.getString("creator_username"));
+            try {
+                event.setImagePath(rs.getString("image_path"));
+            } catch (Exception e) {
+            }
+            try {
+                event.setXpReward(rs.getInt("xp_reward"));
+            } catch (Exception e) {
+            }
+            try {
+                event.setMinTierIndex(rs.getInt("min_tier"));
+            } catch (Exception e) {
+            }
+            event.setTags(getEventTags(eventID));
+            event.setAttendanceMap(getAttendanceMap(eventID));
+            event.setComments(getComments(eventID));
+            return event;
+        } catch (Exception e2) {
+            System.out.println(e2);
+            return null;
+        }
+    }
+
+    private static java.time.LocalDateTime parseOptDT(String dateString) {
+        if (dateString == null || dateString.isEmpty() || dateString.equals("null")) {
+            return null;
+        }
+        try {
+            return java.time.LocalDateTime.parse(dateString);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public static ArrayList<Comment> getComments(int eventID) {
+        ArrayList<Comment> commentList = new ArrayList<>();
+        try {
+            PreparedStatement ps = databaseConnection
+                    .prepareStatement("SELECT * FROM comments WHERE event_id=? ORDER BY comment_id ASC");
+            ps.setInt(1, eventID);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                int parentCommentID = 0;
+                try {
+                    parentCommentID = rs.getInt("parent_comment_id");
+                } catch (Exception e) {
+                }
+                commentList.add(new Comment(rs.getInt("comment_id"), rs.getString("username"),
+                        rs.getString("text"), rs.getString("time"), parentCommentID));
+            }
+        } catch (Exception e) {
+        }
+        return commentList;
+    }
+
+    public static ArrayList<Integer> getPopularEventIds(int limit) {
+        ArrayList<Integer> eventIDs = new ArrayList<>();
         try {
             PreparedStatement ps = databaseConnection.prepareStatement(
-                    "SELECT DISTINCT CASE WHEN sender_username=? THEN receiver_username ELSE sender_username END AS partner " +
-                            "FROM messages WHERE sender_username=? OR receiver_username=? ORDER BY partner");
+                    "SELECT event_id, COUNT(*) as cnt FROM attendance GROUP BY event_id ORDER BY cnt DESC LIMIT ?");
+            ps.setInt(1, limit);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                eventIDs.add(rs.getInt("event_id"));
+            }
+        } catch (Exception e) {
+        }
+        return eventIDs;
+    }
+
+    // Matches user interests with event tags to find matching events
+    public static ArrayList<Integer> getRecommendedEventIds(String username, int limit) {
+        ArrayList<Integer> eventIDs = new ArrayList<>();
+        try {
+            PreparedStatement ps = databaseConnection.prepareStatement(
+                    "SELECT DISTINCT e.event_id FROM events e " +
+                            "JOIN event_tags et ON e.event_id=et.event_id " +
+                            "JOIN user_interests ui ON et.tag=ui.interest " +
+                            "WHERE ui.username=? AND e.creator_username!=? " +
+                            "AND e.event_id NOT IN (SELECT event_id FROM attendance WHERE username=?) " +
+                            "ORDER BY e.event_id DESC LIMIT ?");
             ps.setString(1, username);
             ps.setString(2, username);
             ps.setString(3, username);
+            ps.setInt(4, limit);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
-                partners.add(rs.getString("partner"));
+                eventIDs.add(rs.getInt("event_id"));
             }
         } catch (Exception e) {
         }
-        return partners;
+        return eventIDs;
     }
 
-    // counts unread messages for a user
-    public static int getUnreadMessageCount(String username) {
+    // ---------------------------- leaderboard ----------------------------
+
+    public static ArrayList<User> getLeaderboard(int limit) {
+        ArrayList<User> userList = new ArrayList<>();
         try {
             PreparedStatement ps = databaseConnection.prepareStatement(
-                    "SELECT COUNT(*) FROM messages WHERE receiver_username=? AND read_at IS NULL");
-            ps.setString(1, username);
+                    "SELECT * FROM users ORDER BY xp DESC LIMIT ?");
+            ps.setInt(1, limit);
             ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                return rs.getInt(1);
+            while (rs.next()) {
+                userList.add(buildUser(rs));
             }
         } catch (Exception e) {
         }
-        return 0;
+        return userList;
     }
 
-    // marks messages from a specific sender as read
-    public static void markMessagesAsRead(String receiver, String sender) {
-        try {
-            PreparedStatement ps = databaseConnection.prepareStatement(
-                    "UPDATE messages SET read_at=CURRENT_TIMESTAMP " +
-                            "WHERE receiver_username=? AND sender_username=? AND read_at IS NULL");
-            ps.setString(1, receiver);
-            ps.setString(2, sender);
-            ps.executeUpdate();
-        } catch (Exception e) {
-        }
-    }
+    // ---------------------------- XP ----------------------------
 
-    // ----------------------------xp----------------------------
-
-    public static int getUserXP(String username) {
+    public static int getUserXP(String _username) {
         try {
-            PreparedStatement ps = databaseConnection.prepareStatement(
-                    "SELECT xp FROM users WHERE username=?");
-            ps.setString(1, username);
-            ResultSet rs = ps.executeQuery();
+            ResultSet rs = databaseConnection.createStatement()
+                    .executeQuery("SELECT xp FROM users WHERE username='" + _username + "'");
             if (rs.next()) {
                 return rs.getInt("xp");
             }
@@ -492,46 +845,37 @@ public class Database {
         return 0;
     }
 
-    public static void addXP(String username, int amount) {
+    public static void addXP(String _username, int _amount) {
         try {
             databaseConnection.createStatement()
-                    .executeUpdate("UPDATE users SET xp = xp + " + amount + " WHERE username='" + username + "'");
+                    .executeUpdate(
+                            "UPDATE users SET xp=GREATEST(xp+" + _amount + ",0) WHERE username='" + _username + "'");
         } catch (Exception e) {
         }
     }
 
-    // ----------------------------queries----------------------------
+    // ---------------------------- other ----------------------------
 
-    // prints all users from db
-    public static void printAllUsers() {
+    public static boolean isEmailTaken(String _email) {
         try {
             ResultSet rs = databaseConnection.createStatement()
-                    .executeQuery("SELECT * FROM users");
-            while (rs.next()) {
-                System.out.println("  " + rs.getString("username") + " - " +
-                        rs.getString("display_name") + " xp=" + rs.getInt("xp"));
+                    .executeQuery("SELECT COUNT(*) FROM users WHERE email='" + _email + "'");
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
             }
         } catch (Exception e) {
-            e.printStackTrace();
         }
+        return false;
     }
 
-    // prints all events from db
-    public static void printAllEvents() {
+    public static void updateEventImage(int _eventID, String _path) {
         try {
-            ResultSet rs = databaseConnection.createStatement()
-                    .executeQuery("SELECT * FROM events");
-            while (rs.next()) {
-                System.out.println("  [" + rs.getInt("event_id") + "] " +
-                        rs.getString("title") + " at " + rs.getString("location") +
-                        " by " + rs.getString("creator_username"));
-            }
+            databaseConnection.createStatement()
+                    .executeUpdate("UPDATE events SET image_path='" + _path + "' WHERE event_id=" + _eventID);
         } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 
-    // checks if no users exist
     public static boolean isDatabaseEmpty() {
         try {
             ResultSet rs = databaseConnection.prepareStatement("SELECT COUNT(*) FROM users").executeQuery();
@@ -548,164 +892,89 @@ public class Database {
         return true;
     }
 
-    // checks if email is already taken
-    public static boolean isEmailTaken(String email) {
+    private static ArrayList<String> qList(String _query, String _column, Object _obj) {
+        ArrayList<String> resultList = new ArrayList<>();
         try {
-            PreparedStatement ps = databaseConnection.prepareStatement(
-                    "SELECT COUNT(*) FROM users WHERE email=?");
-            ps.setString(1, email);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                return rs.getInt(1) > 0;
+            PreparedStatement ps = databaseConnection.prepareStatement(_query);
+            if (_obj instanceof Integer) {
+                ps.setInt(1, (Integer) _obj);
+            } else {
+                ps.setString(1, _obj.toString());
             }
-        } catch (Exception e) {
-        }
-        return false;
-    }
-
-    // gets top users by xp for leaderboard
-    public static ArrayList<String> getLeaderboard(int limit) {
-        ArrayList<String> list = new ArrayList<>();
-        try {
-            ResultSet rs = databaseConnection.createStatement()
-                    .executeQuery("SELECT username,display_name,xp FROM users ORDER BY xp DESC LIMIT " + limit);
-            while (rs.next()) {
-                list.add(rs.getString("username") + " - " + rs.getString("display_name") + " (" + rs.getInt("xp") + " xp)");
-            }
-        } catch (Exception e) {
-        }
-        return list;
-    }
-
-    // gets most attended event ids
-    public static ArrayList<Integer> getPopularEventIds(int limit) {
-        ArrayList<Integer> eventIDs = new ArrayList<>();
-        try {
-            ResultSet rs = databaseConnection.createStatement()
-                    .executeQuery("SELECT event_id, COUNT(*) as cnt FROM attendance GROUP BY event_id ORDER BY cnt DESC LIMIT " + limit);
-            while (rs.next()) {
-                eventIDs.add(rs.getInt("event_id"));
-            }
-        } catch (Exception e) {
-        }
-        return eventIDs;
-    }
-
-    // Matches user interests with event tags to find matching events
-    public static ArrayList<Integer> getRecommendedEventIds(String username, int limit) {
-        ArrayList<Integer> eventIDs = new ArrayList<>();
-        try {
-            PreparedStatement ps = databaseConnection.prepareStatement(
-                    "SELECT DISTINCT et.event_id FROM event_tags et " +
-                            "INNER JOIN user_interests ui ON et.tag = ui.interest " +
-                            "WHERE ui.username=? " +
-                            "AND et.event_id NOT IN (SELECT event_id FROM attendance WHERE username=?) " +
-                            "LIMIT ?");
-            ps.setString(1, username);
-            ps.setString(2, username);
-            ps.setInt(3, limit);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
-                eventIDs.add(rs.getInt("event_id"));
+                resultList.add(rs.getString(_column));
             }
         } catch (Exception e) {
         }
-        return eventIDs;
+        return resultList;
     }
 
-    // computes a hash of database state for polling
+    // sum of all table counts, if this changes we know something changed in the db
+    // its not a real hash but works good enough for our polling system
     public static int getDbStateHash() {
+        if (databaseConnection == null) {
+            return -1;
+        }
         try {
-            int hash = 0;
-            ResultSet rs = databaseConnection.createStatement().executeQuery("SELECT COUNT(*) FROM users");
-            if (rs.next()) hash += rs.getInt(1) * 31;
-            rs = databaseConnection.createStatement().executeQuery("SELECT COUNT(*) FROM events");
-            if (rs.next()) hash += rs.getInt(1) * 37;
-            rs = databaseConnection.createStatement().executeQuery("SELECT COUNT(*) FROM follows");
-            if (rs.next()) hash += rs.getInt(1) * 41;
-            rs = databaseConnection.createStatement().executeQuery("SELECT COUNT(*) FROM attendance");
-            if (rs.next()) hash += rs.getInt(1) * 43;
-            rs = databaseConnection.createStatement().executeQuery("SELECT COUNT(*) FROM comments");
-            if (rs.next()) hash += rs.getInt(1) * 47;
-            rs = databaseConnection.createStatement().executeQuery("SELECT COUNT(*) FROM messages");
-            if (rs.next()) hash += rs.getInt(1) * 53;
-            return hash;
+            ResultSet rs = databaseConnection.prepareStatement(
+                    "SELECT (" +
+                            "(SELECT COUNT(*) FROM users) + " +
+                            "(SELECT COUNT(*) FROM events) + " +
+                            "(SELECT COUNT(*) FROM comments) + " +
+                            "(SELECT COUNT(*) FROM attendance) + " +
+                            "(SELECT COUNT(*) FROM follows) + " +
+                            "(SELECT COUNT(*) FROM messages) + " +
+                            "(SELECT IFNULL(SUM(is_read), 0) FROM messages)) ")
+                    .executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
         } catch (Exception e) {
         }
         return -1;
     }
 
-    // ----------------------------delete----------------------------
-
-    // deletes a user and their related data
-    public static void deleteUser(String username) {
-        try {
-            String uname = username;
-            executeDelete("DELETE FROM user_interests WHERE username=?", uname);
-            executeDelete("DELETE FROM follows WHERE follower_username=? OR following_username=?", uname, uname);
-            executeDelete("DELETE FROM notifications WHERE username=?", username);
-            executeDelete("DELETE FROM attendance WHERE username=?", uname);
-            executeDelete("DELETE FROM users WHERE username=?", username);
-        } catch (Exception e) {
+    public static int getUnreadMessageCount(String _receiver) {
+        if (databaseConnection == null) {
+            return 0;
         }
+        try {
+            ResultSet rs = databaseConnection.createStatement()
+                    .executeQuery("SELECT COUNT(*) FROM messages WHERE receiver = '" + _receiver + "' AND is_read = 0");
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        return 0;
     }
 
-    // deletes an event and its related data
-    public static void deleteEvent(int eventId) {
+    public static int getUnreadCountFromUser(String _receiver, String _sender) {
+        if (databaseConnection == null) {
+            return 0;
+        }
         try {
-            databaseConnection.createStatement()
-                    .executeUpdate("DELETE FROM event_tags WHERE event_id=" + eventId);
-            databaseConnection.createStatement()
-                    .executeUpdate("DELETE FROM attendance WHERE event_id=" + eventId);
-            databaseConnection.createStatement()
-                    .executeUpdate("DELETE FROM comments WHERE event_id=" + eventId);
-            databaseConnection.createStatement()
-                    .executeUpdate("DELETE FROM events WHERE event_id=" + eventId);
+            ResultSet rs = databaseConnection.createStatement().executeQuery(
+                    "SELECT COUNT(*) FROM messages WHERE receiver = '" + _receiver + "' AND sender = '" + _sender
+                            + "' AND is_read = 0");
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
         } catch (Exception e) {
         }
+        return 0;
     }
 
-    // ----------------------------update----------------------------
-
-    public static void updateUserBio(String username, String bio) {
-        try {
-            PreparedStatement ps = databaseConnection.prepareStatement(
-                    "UPDATE users SET bio=? WHERE username=?");
-            ps.setString(1, bio);
-            ps.setString(2, username);
-            ps.executeUpdate();
-        } catch (Exception e) {
+    public static void markMessagesAsRead(String _receiver, String _sender) {
+        if (databaseConnection == null) {
+            return;
         }
-    }
-
-    public static void updateUserVerified(String username, boolean verified) {
         try {
             databaseConnection.createStatement()
-                    .executeUpdate("UPDATE users SET verified=" + (verified ? 1 : 0) +
-                            " WHERE username='" + username + "'");
-        } catch (Exception e) {
-        }
-    }
-
-    public static void updateUserPassword(String username, String hashedPassword, String salt) {
-        try {
-            PreparedStatement ps = databaseConnection.prepareStatement(
-                    "UPDATE users SET password=?, salt=? WHERE username=?");
-            ps.setString(1, hashedPassword);
-            ps.setString(2, salt);
-            ps.setString(3, username);
-            ps.executeUpdate();
-        } catch (Exception e) {
-        }
-    }
-
-    public static void updateEventImage(int eventId, String imagePath) {
-        try {
-            PreparedStatement ps = databaseConnection.prepareStatement(
-                    "UPDATE events SET image_path=? WHERE event_id=?");
-            ps.setString(1, imagePath);
-            ps.setInt(2, eventId);
-            ps.executeUpdate();
+                    .executeUpdate("UPDATE messages SET is_read = 1 WHERE receiver = '" + _receiver + "' AND sender = '"
+                            + _sender + "'");
         } catch (Exception e) {
         }
     }
