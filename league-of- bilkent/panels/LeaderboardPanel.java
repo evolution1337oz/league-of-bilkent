@@ -36,7 +36,7 @@ public class LeaderboardPanel extends JPanel {
         content.add(UIHelper.createSubtitle(AppConstants.PAGE_LEADER_SUB));
         content.add(Box.createVerticalStrut(20));
 
-        // Create tier legend panel with colored badges for each tier
+        // Creates tier legend panel 
         JPanel legend = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
         legend.setBackground(Color.WHITE);
         legend.setAlignmentX(LEFT_ALIGNMENT);
@@ -71,9 +71,9 @@ public class LeaderboardPanel extends JPanel {
     /**
      * Creates a single leaderboard row for a user.
      *
-     * @param rank the user's rank position (1-based)
+     * @param rank the user's rank position 
      * @param u    the User object containing player data
-     * @return JPanel configured as a leaderboard row with click navigation
+     * @return JPanel configured as a leaderboard row 
      */
     private JPanel createRow(int rank, User u) {
         // Row panel with conditional styling: top 3 get subtle highlight
@@ -146,8 +146,9 @@ public class LeaderboardPanel extends JPanel {
 
         // Make row clickable to navigate to user's profile
         row.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        row.addMouseListener(e -> home.navigateToProfile(u));
-
+        row.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent e) { home.navigateToProfile(u); }
+        });
         return row;
     }
 
