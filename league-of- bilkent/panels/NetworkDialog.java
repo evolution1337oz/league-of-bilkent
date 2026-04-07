@@ -16,9 +16,7 @@ public class NetworkDialog extends JDialog {
         this.parent = _parent;
         setSize(300, 250);
         // position near mouse
-        setLocation(
-            (int)MouseInfo.getPointerInfo().getLocation().getX()-150,
-            (int)MouseInfo.getPointerInfo().getLocation().getY()-125
+        setLocation((int)MouseInfo.getPointerInfo().getLocation().getX()-150,(int)MouseInfo.getPointerInfo().getLocation().getY()-125
         );
         buildUI();
     }

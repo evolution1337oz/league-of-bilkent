@@ -687,6 +687,27 @@ public class Database {
         return allEvents;
     }
 
+    // get events that a specific user created
+    // tried to add date filter but it broke something
+    public static ArrayList<Event> getEventsCreatedBy(String username) {
+        ArrayList<Event> result = new ArrayList<Event>();
+        ArrayList<Event> all = getAllEvents();
+        for (int i = 0; i < all.size(); i++) {
+            Event ev = all.get(i);
+            if (ev.getCreatorUsername().equals(username)) {
+                result.add(ev);
+            }
+        }
+        /* tried to filter old events but getting error with the date comparison
+        for (int j = result.size() - 1; j >= 0; j--) {
+            String dt = result.get(j).getDateTime().toString()
+            if (dt.compareTo(java.time.LocalDateTime.now().toString()) < 0) {
+                result.remove(j);
+            }
+        }
+        */
+        return result;
+    }
 
     private static Event buildEvent(ResultSet rs) {
         try {
@@ -912,5 +933,49 @@ public class Database {
         } catch (Exception e) {
         }
         return -1;
+    }
+
+    public static int getUnreadMessageCount(String _receiver) {
+        if (databaseConnection == null) {
+            return 0;
+        }
+        try {
+            ResultSet rs = databaseConnection.createStatement()
+                    .executeQuery("SELECT COUNT(*) FROM messages WHERE receiver = '" + _receiver + "' AND is_read = 0");
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        return 0;
+    }
+
+    public static int getUnreadCountFromUser(String _receiver, String _sender) {
+        if (databaseConnection == null) {
+            return 0;
+        }
+        try {
+            ResultSet rs = databaseConnection.createStatement().executeQuery(
+                    "SELECT COUNT(*) FROM messages WHERE receiver = '" + _receiver + "' AND sender = '" + _sender
+                            + "' AND is_read = 0");
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (Exception e) {
+        }
+        return 0;
+    }
+
+    public static void markMessagesAsRead(String _receiver, String _sender) {
+        if (databaseConnection == null) {
+            return;
+        }
+        try {
+            databaseConnection.createStatement()
+                    .executeUpdate("UPDATE messages SET is_read = 1 WHERE receiver = '" + _receiver + "' AND sender = '"
+                            + _sender + "'");
+        } catch (Exception e) {
+        }
     }
 }

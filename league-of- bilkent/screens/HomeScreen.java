@@ -80,6 +80,7 @@ public class HomeScreen extends JFrame {
                             @Override
                             public void run() {
                                 refreshCurrentView();
+                                updateBadges();
                             }
                         });
                     }
@@ -88,6 +89,26 @@ public class HomeScreen extends JFrame {
         }).start();
     }
 
+    private void updateBadges() {
+        if (messagesNavBtn != null) {
+            String currentUsername = MainFile.currentUser.getUsername();
+            int unread = Database.getUnreadMessageCount(currentUsername);
+            int max = 9;
+            if (unread > 0) {
+                String badgeText = "";
+                if (unread > max) {
+                    badgeText = max + "+";
+                } else {
+                    badgeText = String.valueOf(unread);
+                }
+                messagesNavBtn.setIcon(new BadgeIcon(badgeText));
+                messagesNavBtn.setHorizontalTextPosition(SwingConstants.LEFT);
+                messagesNavBtn.setIconTextGap(10);
+            } else {
+                messagesNavBtn.setIcon(null);
+            }
+        }
+    }
 
     private void refreshCurrentView() {
         if (currentView.equals("feed")) {
@@ -246,7 +267,33 @@ public class HomeScreen extends JFrame {
         return bar;
     }
 
+    private static class BadgeIcon implements Icon {
+        private String text;
 
+        public BadgeIcon(String text) {
+            this.text = text;
+        }
+
+        public int getIconWidth() {
+            return 24;
+        }
+
+        public int getIconHeight() {
+            return 24;
+        }
+
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+            Graphics2D g2 = (Graphics2D) g;
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(AppConstants.DANGER);
+            g2.fillOval(x, y + 2, 20, 20);
+            g2.setColor(Color.WHITE);
+            g2.setFont(new Font("SansSerif", Font.BOLD, 10));
+            FontMetrics fm = g2.getFontMetrics();
+            int w = fm.stringWidth(text);
+            g2.drawString(text, x + 10 - w / 2, y + 15);
+        }
+    }
 
     private JPanel buildSideNav() {
         JPanel nav = new JPanel();
