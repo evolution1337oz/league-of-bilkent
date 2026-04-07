@@ -18,49 +18,69 @@ public class SampleData {
         String s6 = PasswordUtil.generateSalt();
         String s7 = PasswordUtil.generateSalt();
 
-        // Create 5 student users
+        // Users
+        // Damla: Username: damla, password: 1234
         User damla = new User("damla", "Damla", "damla@ug.bilkent.edu.tr",
-            PasswordUtil.hashPassword("1234", s1), s1, "CS Student | Event Organizer");
+        PasswordUtil.hashPassword("1234", s1), s1, "CS Student | Event Organizer");
         damla.setVerified(true); damla.setXp(120);
-        damla.getInterests().add("software"); damla.getInterests().add("ai");
-        damla.getInterests().add("music"); damla.getInterests().add("philosophy");
+        damla.getInterests().add("software"); 
+        damla.getInterests().add("ai");
+        damla.getInterests().add("music"); 
+        damla.getInterests().add("philosophy");
 
+        //Eylül: Username: eylul, password: 1234
         User eylul = new User("eylul", "Eylül", "eylul@ug.bilkent.edu.tr",
-            PasswordUtil.hashPassword("1234", s2), s2, "Art & Photography Lover");
-        eylul.setVerified(true); eylul.setXp(80);
-        eylul.getInterests().add("art"); eylul.getInterests().add("photography");
+        PasswordUtil.hashPassword("1234", s2), s2, "Art & Photography Lover");
+        eylul.setVerified(true); 
+        eylul.setXp(80);
+        eylul.getInterests().add("art"); 
+        eylul.getInterests().add("photography");
         eylul.getInterests().add("cinema");
 
+        //Emir: Username: emir_selim, password: 1234
         User emir = new User("emir_selim", "Emir Selim", "emirselim@ug.bilkent.edu.tr",
-            PasswordUtil.hashPassword("1234", s3), s3, "Runner & Sports Enthusiast");
-        emir.setVerified(true); emir.setXp(95);
-        emir.getInterests().add("sports"); emir.getInterests().add("fitness");
+        PasswordUtil.hashPassword("1234", s3), s3, "Runner & Sports Enthusiast");
+        emir.setVerified(true); 
+        emir.setXp(95);
+        emir.getInterests().add("sports"); 
+        emir.getInterests().add("fitness");
         emir.getInterests().add("basketball");
 
+        // Ege: Username: ege, password: 1234
         User ege = new User("ege", "Ege", "ege@ug.bilkent.edu.tr",
-            PasswordUtil.hashPassword("1234", s4), s4, "Music Producer & GameDev");
-        ege.setVerified(true); ege.setXp(60);
-        ege.getInterests().add("music"); ege.getInterests().add("gamedev");
+        PasswordUtil.hashPassword("1234", s4), s4, "Music Producer & GameDev");
+        ege.setVerified(true); 
+        ege.setXp(60);
+        ege.getInterests().add("music");
+        ege.getInterests().add("gamedev");
         ege.getInterests().add("software");
 
+        // Bosman: Username: bosman, password: 1234
         User bosman = new User("bosman", "Bosman", "bosman@ug.bilkent.edu.tr",
-            PasswordUtil.hashPassword("1234", s5), s5, "Entrepreneur & Finance Geek");
-        bosman.setVerified(true); bosman.setXp(45);
-        bosman.getInterests().add("entrepreneurship"); bosman.getInterests().add("finance");
+        PasswordUtil.hashPassword("1234", s5), s5, "Entrepreneur & Finance Geek");
+        bosman.setVerified(true); 
+        bosman.setXp(45);
+        bosman.getInterests().add("entrepreneurship"); 
+        bosman.getInterests().add("finance");
         bosman.getInterests().add("marketing");
 
-        // Create 2 club accounts
+        //Clubs
+        // IEEE Bilkent: Username: ieee_bilkent, password: 1234
         ClubUser ieee = new ClubUser("ieee_bilkent", "IEEE Bilkent", "ieee@bilkent.edu.tr",
-            PasswordUtil.hashPassword("1234", s6), s6, "IEEE Bilkent Student Branch");
-        ieee.setVerified(true); ieee.setXp(200);
-        ieee.getInterests().add("software"); ieee.getInterests().add("ai");
+        PasswordUtil.hashPassword("1234", s6), s6, "IEEE Bilkent Student Branch");
+        ieee.setVerified(true); 
+        ieee.setXp(200);
+        ieee.getInterests().add("software"); 
+        ieee.getInterests().add("ai");
 
+        // Music Club: Username: music_club, password: 1234
         ClubUser music = new ClubUser("music_club", "Music Club", "music@bilkent.edu.tr",
-            PasswordUtil.hashPassword("1234", s7), s7, "Bilkent Music & Performance Club");
-        music.setVerified(true); music.setXp(150);
+        PasswordUtil.hashPassword("1234", s7), s7, "Bilkent Music & Performance Club");
+        music.setVerified(true);
+        music.setXp(150);
         music.getInterests().add("music");
 
-        // Add all users to database
+        // users to database
         Database.addToDatabase(damla);
         Database.addToDatabase(eylul);
         Database.addToDatabase(emir);
@@ -90,7 +110,7 @@ public class SampleData {
         Database.addFollow("bosman", "ieee_bilkent");
         Database.addFollow("bosman", "emir_selim");
 
-        // Create 18 sample events (dates are relative to current time)
+        // Events
         LocalDateTime now = LocalDateTime.now();
 
         Event e1 = new Event(0, "GameDev Summit", "Learn about game development with Unity and Unreal Engine.",

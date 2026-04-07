@@ -94,7 +94,11 @@ public class LeaderboardPanel extends JPanel {
     private JPanel createRow(int rank, User u) {
         // Row panel with conditional styling: top 3 get subtle highlight
         JPanel row = new JPanel(new BorderLayout());
-        row.setBackground(rank <= 3 ? new Color(0xFB, 0xFB, 0xFA) : Color.WHITE);
+        if (rank <= 3) {
+            row.setBackground(new Color(0xFB, 0xFB, 0xFA));
+        } else {
+            row.setBackground(Color.WHITE);
+        }
         row.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 0, 1, 0, AppConstants.BORDER),
             BorderFactory.createEmptyBorder(10, 14, 10, 14)));
@@ -102,7 +106,16 @@ public class LeaderboardPanel extends JPanel {
         row.setAlignmentX(LEFT_ALIGNMENT);
 
         // Rank badge: medal emoji for top 3, number for rest
-        String rankStr = rank <= 3 ? new String[]{"\uD83E\uDD47","\uD83E\uDD48","\uD83E\uDD49"}[rank-1] : "#" + rank;
+        String rankStr;
+        if (rank == 1) {
+            rankStr = "\uD83E\uDD47";
+        } else if (rank == 2) {
+            rankStr = "\uD83E\uDD48";
+        } else if (rank == 3) {
+            rankStr = "\uD83E\uDD49";
+        } else {
+            rankStr = "#" + rank;
+        }
         JLabel rankLbl = new JLabel(rankStr);
         rankLbl.setFont(AppConstants.F_TITLE);
         rankLbl.setPreferredSize(new Dimension(44, 34));

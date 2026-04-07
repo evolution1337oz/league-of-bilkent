@@ -8,8 +8,7 @@ public class AppConstants {
 
 
 
-    // ═══ PALETTE ═══
-    
+    // COLORS
     public static final Color TEAL = new Color(0x00, 0xB8, 0xC8);
     public static final Color TEAL_DARK = new Color(0x00, 0x7D, 0x8C);
     public static final Color TEAL_LIGHT = new Color(0xCE, 0xF3, 0xF6);
@@ -39,7 +38,7 @@ public class AppConstants {
 
 
 
-    // ═══ FONTS ═══
+    // FONTS
 
     public static final Font F_HERO = new Font("SansSerif", Font.BOLD, 36);
     public static final Font F_BIG = new Font("SansSerif", Font.BOLD, 28);
@@ -51,7 +50,7 @@ public class AppConstants {
 
 
 
-    // ═══ LAYOUT ═══
+    // LAYOUT
 
     public static final int WINDOW_WIDTH = 1200;
     public static final int WINDOW_HEIGHT = 820;
@@ -70,14 +69,7 @@ public class AppConstants {
     public static final int AVATAR_SIZE_LARGE = 72;
 
 
-    // ═══ Tier System ═══
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // TIER SYSTEM - User reputation progression
-    // TIER_NAMES: Display names from Newcomer to Legend
-    // TIER_THRESHOLDS: XP thresholds for each tier
-    // TIER_COLORS: Visual color for each tier rank
-    // Helper methods: getTierIndex, getTierName, getTierColor, getNextTierXP, getNextTierName
-    // ═══════════════════════════════════════════════════════════════════════════════
+    // Tier system
     public static final String[] TIER_NAMES = { "Newcomer", "Active", "Experienced", "Trusted", "Legend" };
     public static final int[] TIER_THRESHOLDS = { 0, 50, 150, 400, 1000 };
     public static final Color[] TIER_COLORS = { TEXT_MUTED, TEAL, SUCCESS, INTERESTED, WARNING };
@@ -108,15 +100,7 @@ public class AppConstants {
     }
 
 
-    // ═══ XP ═══
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // XP - Experience points awarded for user actions
-    // XP_CREATE_EVENT: Creating a new event
-    // XP_ATTEND_EVENT: Attending an event
-    // XP_COMMENT: Leaving a comment
-    // XP_GAIN_FOLLOWER: Gaining a follower
-    // XP_CANCEL_EVENT/XP_NO_SHOW: Penalties for negative actions
-    // ═══════════════════════════════════════════════════════════════════════════════
+    // XP VALUES
     public static final int XP_CREATE_EVENT = 10;
     public static final int XP_ATTEND_EVENT = 5;
     public static final int XP_COMMENT = 2;
@@ -125,17 +109,7 @@ public class AppConstants {
     public static final int XP_NO_SHOW = -10;
 
 
-    // ═══ Event Defaults ═══
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // EVENT DEFAULTS - Default values for event creation
-    // DEFAULT_CAPACITY: Initial capacity for new events
-    // MIN/MAX_CAPACITY: Allowed capacity range
-    // CAPACITY_STEP: Increment step for capacity slider
-    // DEFAULT_DURATION_HRS: Default event duration
-    // DEFAULT_DEADLINE_DAYS: Default registration deadline (days before event)
-    // DEFAULT_EVENT_XP: Default XP reward for attendees
-    // MIN/MAX_EVENT_XP: XP reward limits
-    // ═══════════════════════════════════════════════════════════════════════════════
+    // EVENT CONSTRAINTS
     public static final int DEFAULT_CAPACITY = 50;
     public static final int MIN_CAPACITY = 5;
     public static final int MAX_CAPACITY = 1000;
@@ -148,15 +122,8 @@ public class AppConstants {
 
 
 
-    // ═══ Database ═══
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // DATABASE - MySQL connection configuration
-    // DB_URL: JDBC connection string (includes database name)
-    // DB_USER: Database username
-    // DB_PASS: Database password
-    // Credentials loaded from credentials.properties file at runtime
-    // Falls back to defaults if file not found
-    // ═══════════════════════════════════════════════════════════════════════
+    // DATABASE
+    
     private static final Properties DB_PROPS = loadCredentials();
     public static final String DB_URL = DB_PROPS.getProperty("db.url",
             "jdbc:mysql://localhost:3306/league_of_bilkent?createDatabaseIfNotExist=true");
@@ -174,14 +141,7 @@ public class AppConstants {
 
 
 
-    // ═══ Email Configurations ═══
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // EMAIL - SMTP configuration for sending emails
-    // EMAIL_SENDER: From address (Bilkent domain)
-    // EMAIL_PASSWORD: SMTP authentication password
-    // EMAIL_SMTP_HOST: SMTP server hostname
-    // EMAIL_SMTP_PORT: SMTP port (587 for TLS)
-    // ═══════════════════════════════════════════════════════════════════════════════
+    // EMAIL SETTINGS
     public static final String EMAIL_SENDER = "noreply@bilkent.edu.tr";
     public static final String EMAIL_PASSWORD = "";
     public static final String EMAIL_SMTP_HOST = "asmtp.bilkent.edu.tr";
@@ -189,14 +149,8 @@ public class AppConstants {
 
 
 
-    // ═══ Validations ═══
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // VALIDATION - Input validation constraints
-    // MIN_USERNAME_LENGTH: Minimum username characters
-    // MIN_PASSWORD_LENGTH: Minimum password characters
-    // MAX_DESCRIPTION_LEN: Maximum description length (characters)
-    // VERIFICATION_CODE_MIN/MAX: Random code range for email verification
-    // ═══════════════════════════════════════════════════════════════════════
+    // VALIDATION
+   
     public static final int MIN_USERNAME_LENGTH = 3;
     public static final int MIN_PASSWORD_LENGTH = 4;
     public static final int MAX_DESCRIPTION_LEN = 500;
@@ -205,15 +159,8 @@ public class AppConstants {
 
 
 
-    // ═══ Interests ═══
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // INTERESTS - Interest categories for user profiles and event tags
-    // INTEREST_CATEGORIES: Master list of available interests
-    // Categories include: Technology (Software, AI, WebDev, etc.), Creative
-    //   (Music, Art, Photography), Sports, Academic, Business, Social causes
-    // DEFAULT_POSTER: Fallback image for events without poster
-    // EVENT_SCORE_*: Factors for event quality scoring algorithm
-    // ═══════════════════════════════════════════════════════════════════════
+    // INTERESTS    
+    
     public static final String[] INTEREST_CATEGORIES = {
             "Software", "Algorithms", "GameDev", "AI", "Data Science", "Cybersecurity",
             "Robotics", "Web Dev", "Mobile Dev", "Music", "Art", "Photography", "Cinema",
@@ -229,8 +176,8 @@ public class AppConstants {
 
 
 
-    // ═══ UI STRINGS ═══   
-    // ═══════════════════════════════════════════════════════════════════════════════
+    // UI STRINGS   
+    // ----------------
     // UI STRINGS - All user-facing text, labels, buttons, messages
     // APP_NAME: Application title
     // PAGE_*: Navigation page titles and subtitles
@@ -245,7 +192,6 @@ public class AppConstants {
     // LOGIN_*: Login screen text
     // LABEL_*: Form labels
     // NAV_*: Navigation menu items
-    // ═══════════════════════════════════════════════════════════════════════════════
     public static final String APP_NAME = "League of Bilkent";
     public static final String PAGE_FEED = "Events";
     public static final String PAGE_FEED_SUB = "See what\u2019s happening on campus.";
